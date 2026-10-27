@@ -1,0 +1,1796 @@
+{
+  "name": "AI Context Flow - Content Strategy V1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        0
+      ],
+      "id": "e64548e0-7c40-45b1-aeb6-ec9422b51c36",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0f7a370b-60d7-4711-ac75-5a8ebd4f17bf",
+              "leftValue": "={{ $json.Generate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "0f450cfb-5669-422e-b57b-3e35e7ac2dd9",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "idea",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2910,
+        0
+      ],
+      "id": "f62801e5-0409-4673-90ef-a692d510f2ed",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-5-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a research analyst for AI Context Flow. AI Context Flow is focused on portable AI context and memory across AI tools. Your role is RESEARCH ONLY. Determine what credible evidence, current web sources, official documentation, technical sources, and existing market content say about the topic. Do not write the final article. Do not invent a brand point of view. Do not recommend what AI Context Flow should believe. Do not turn speculation into fact. Do not invent sources or URLs. Separate evidence from interpretation. Prioritize official product documentation, official announcements, original research, technical documentation, GitHub repositories, high-quality technical publications, industry analysis, and then community discussions. Return ONLY valid JSON without markdown. Classify search intent using ONLY these categories: informational, how-to, comparison, commercial investigation, transactional, navigational. Choose exactly one primary intent. Choose zero or more secondary intents only when clearly supported by the search results.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Research this potential article topic.\\n\\nTOPIC: {{ $json.Topic }}\\nPRIMARY KEYWORD: {{ $json['Primary Keyword'] }}\\nSTRATEGIC PILLAR: {{ $json['Strategic Pillar'] }}\\nPRODUCT RELEVANCE: {{ $json['Product relevance'] }}\\nTEAM-SUGGESTED ANGLE: {{ $json.Angle || '' }}\\nTEAM-SUGGESTED POINT OF VIEW: {{ $json.POV || '' }}\\n\\nThese team suggestions are hypotheses. Verify, qualify, or challenge them using sources.\\n\\nResearch the following:\\n\\n1. SEARCH INTENT\\nClassify the primary and, when clearly applicable, secondary search intent using the allowed intent categories defined in the system instructions. Explain what the searcher is trying to understand, solve, compare, find, or accomplish.\\n\\n2. SEARCH AUDIENCE\\nBased only on the search landscape and sources, who appears to be searching for or consuming content about this topic?\\nDo not assume these people are AI Context Flow's target customers. This field describes search demand, not brand targeting.\\n\\n3. KEY QUESTIONS\\nWhat questions should a genuinely useful article answer?\\n\\n4. EXISTING CONTENT / SERP THEMES\\nWhat topics, explanations, arguments, and approaches are already commonly covered?\\n\\n5. IMPORTANT FACTS\\nWhat credible technical or market facts should an article about this topic know?\\n\\n6. RECENT DEVELOPMENTS\\nWhat meaningful recent developments have changed this topic? Only include developments supported by credible sources.\\n\\n7. PRIMARY SOURCES\\nFind relevant official documentation, product announcements, research, specifications, or original technical sources.\\n\\n8. VIEWPOINTS / DISAGREEMENTS\\nIdentify important competing approaches or disagreements where they genuinely exist.\\n\\n9. CONTENT GAPS\\nBased on the research, identify questions, technical details, comparisons, examples, or perspectives that appear insufficiently covered. Content gaps must be grounded in the research. Do not turn the content gap into an AI Context Flow marketing argument yet.\\n\\n10. POSSIBLE OPPORTUNITIES\\nSuggest possible directions that a later Strategy Agent could investigate. Treat these as opportunities or hypotheses, not established facts.\\n\\nReturn exactly this JSON structure:\\n{\\n  \\\"search_intent\\\": {\\n    \\\"primary\\\": \\\"\\\",\\n    \\\"secondary\\\": [],\\n    \\\"explanation\\\": \\\"\\\"\\n  },\\n  \\\"search_audience\\\": [\\n    {\\n      \\\"segment\\\": \\\"\\\",\\n      \\\"need\\\": \\\"\\\"\\n    }\\n  ],\\n  \\\"key_questions\\\": [],\\n  \\\"existing_serp_themes\\\": [],\\n  \\\"important_facts\\\": [\\n    {\\n      \\\"fact\\\": \\\"\\\",\\n      \\\"source_url\\\": \\\"\\\",\\n      \\\"confidence\\\": \\\"high\\\"\\n    }\\n  ],\\n  \\\"recent_developments\\\": [\\n    {\\n      \\\"development\\\": \\\"\\\",\\n      \\\"date\\\": null,\\n      \\\"why_it_matters\\\": \\\"\\\",\\n      \\\"source_url\\\": \\\"\\\"\\n    }\\n  ],\\n  \\\"primary_sources\\\": [\\n    {\\n      \\\"title\\\": \\\"\\\",\\n      \\\"organization\\\": \\\"\\\",\\n      \\\"url\\\": \\\"\\\",\\n      \\\"source_type\\\": \\\"official_documentation\\\"\\n    }\\n  ],\\n  \\\"viewpoints_and_disagreements\\\": [\\n    {\\n      \\\"topic\\\": \\\"\\\",\\n      \\\"viewpoints\\\": []\\n    }\\n  ],\\n  \\\"content_gaps\\\": [\\n    {\\n      \\\"gap\\\": \\\"\\\",\\n      \\\"evidence\\\": \\\"\\\",\\n      \\\"opportunity\\\": \\\"\\\"\\n    }\\n  ],\\n  \\\"possible_opportunities\\\": [],\\n  \\\"research_summary\\\": \\\"\\\"\\n}\\n\\nRules: Return valid JSON only. No markdown or text outside the JSON. Use real source URLs discovered during research. Never fabricate URLs. Omit claims when reliable evidence cannot be found. Use YYYY-MM-DD when an exact date is known, YYYY-MM when only the month is known, and null when unknown. Prefer 5 strong sources over 20 weak ones. Treat content gaps and opportunities as hypotheses derived from research, not established facts.\"\n    }\n  ],\n  \"tools\": [\n    {\n      \"type\": \"openrouter:web_search\",\n      \"parameters\": {\n        \"engine\": \"exa\",\n        \"max_results\": 5,\n        \"max_total_results\": 10,\n        \"search_context_size\": \"medium\"\n      }\n    }\n  ],\n  \"max_tool_calls\": 3,\n  \"temperature\": 0.2\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3210,
+        -120
+      ],
+      "id": "975a9aef-c0ac-4f9f-bcd7-bb76ce6e3f91",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.choices[0].message.content;\n\nconst research = JSON.parse(content);\n\nreturn [\n  {\n    json: research\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3450,
+        -120
+      ],
+      "id": "e2ddd008-8fbe-4072-ac31-82accaad87ff",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        6150,
+        0
+      ],
+      "id": "60eee5e8-6764-492c-b8c7-171a254e183f",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "={{ $json.requestBody.model }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ $json.requestBody.messages }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ $json.requestBody.temperature }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6690,
+        0
+      ],
+      "id": "3a8c4dbf-7adf-4e2b-8b73-610278ba3adc",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const content = $json.choices[0].message.content;\nconst strategy = JSON.parse(content);\n\nconst original = $(\"Normalize Topic Input\").item.json;\n\n// Remove source metadata generated by the AI\ndelete strategy.source;\ndelete strategy.source_row;\n\n// Editorial inputs are decided upstream\nconst contentObjective = original[\"Content objective\"] || \"\";\n\nconst primaryKeyword =\n  original[\"Primary Keyword\"] ||\n  original.keyword ||\n  \"\";\n\nconst topic = original.Topic || \"\";\n\nreturn {\n  json: {\n    // Preserve original Google Sheets metadata\n    Topic: topic,\n    source_row: original.idea_source === 'memory' ? 'ACF Blogs Ideas|' + original.memory_context_id + '|' + primaryKeyword.toLowerCase().trim().replace(/\\s+/g, '-') : original.row_number,\n\n    // Include all generated strategy fields\n    ...strategy,\n\n    // Upstream editorial inputs always take precedence\n    content_objective: contentObjective,\n    primary_keyword: primaryKeyword,\n    idea_source: original.idea_source || 'sheet'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6930,
+        0
+      ],
+      "id": "edfda732-1d67-48d6-b9bb-c05baeadc679",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "content": "## 00 · Start and choose an idea source\nRun manually. In **Choose Idea Source**, set `idea_source` to `sheet` (default) or `memory`. **Validate Idea Source** rejects other values. The switch sends this run down exactly one intake lane. This workflow develops *content strategies*; it does not publish an article.",
+        "width": 1040,
+        "height": 400,
+        "color": 1
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -390,
+        -270
+      ],
+      "typeVersion": 1,
+      "id": "ae28d5e5-ab20-4dca-8e91-8c133a9e9520",
+      "name": "00 • START & CHOOSE SOURCE"
+    },
+    {
+      "parameters": {
+        "resource": "MapSearch",
+        "operation": "search",
+        "query": "=site:reddit.com {{ $json.Topic }} ChatGPT Claude context memory switching tools user experience",
+        "limit": 10,
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1.1,
+      "position": [
+        3210,
+        350
+      ],
+      "id": "0cfe38e4-d212-42bf-9e28-3560e0020db3",
+      "name": "Search web"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "openai/gpt-5-mini"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": \"You are a community research assistant for a product marketing content team. Select Reddit discussions that provide genuine Voice of Customer evidence. Prioritize first-person user problems, real workflows, frustrations, workarounds, comparisons between AI tools, unmet needs, and discussions likely to contain useful comments. Deprioritize product promotion, builder self-promotion, generic AI news, pure developer architecture, SEO content, and loosely related discussions. Return valid JSON only.\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": `Select the 5 most valuable Reddit discussions for deeper community research from these search results:\n\n${JSON.stringify($json.data.web, null, 2)}\n\nFor each selected discussion, classify its strongest VOC signal as one of:\npain, behavior, workaround, desire, comparison.\n\nReturn exactly:\n\n{\n  \"selected_discussions\": [\n    {\n      \"url\": \"\",\n      \"title\": \"\",\n      \"reason\": \"\",\n      \"voc_signal\": \"\"\n    }\n  ]\n}\n\nRules:\n- Select at most 5.\n- Do not invent URLs or titles.\n- Only select discussions present in the input.\n- Prefer first-person user experiences over promotional or builder posts.\n- The reason should explain what user insight we expect to learn by scraping the full discussion and comments.`\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ 0.1 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3450,
+        350
+      ],
+      "id": "4d407c8f-4153-44db-b2fe-1c4ff7eb4cbc",
+      "name": "OpenRouter - Select Community Discussions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices[0].message.content;\n\nconst selection = JSON.parse(content);\n\nreturn {\n  json: selection\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3690,
+        350
+      ],
+      "id": "484cd57a-711f-4f23-87d3-959b7da3b679",
+      "name": "Code - Parse Community Selection"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "selected_discussions",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3930,
+        350
+      ],
+      "id": "70b1c2b0-a8c1-4452-a955-20e33d8f25ae",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorId": {
+          "__rl": true,
+          "value": "w8pyoMeAi5mwiWJIx",
+          "mode": "list",
+          "cachedResultName": "Reddit Comment Scraper - Export Comments & Replies ($1.5/1k) (harshmaur/reddit-comments-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/w8pyoMeAi5mwiWJIx/input"
+        },
+        "customBody": "={{\n  {\n    \"postUrls\": $json.reddit_urls.map(url => ({\n      \"url\": url\n    })),\n    \"maxCommentsPerPost\": 100\n  }\n}}",
+        "timeout": {},
+        "maxTotalChargeUsd": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        4410,
+        350
+      ],
+      "id": "71ff0e09-f1ad-49cf-a702-290596248807",
+      "name": "Run an Actor and get dataset"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "url",
+              "renameField": true,
+              "outputFieldName": "reddit_urls"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4170,
+        350
+      ],
+      "id": "453d3295-ed0f-41b9-a414-738cf5bbaaab",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst cleaned = items\n  .map(item => {\n    const x = item.json;\n\n    return {\n      type: x.id?.startsWith('t3_') ? 'post' : 'comment',\n      text: x.body || '',\n      post_title: x.title || x.postTitle || '',\n      post_url: x.contentUrl || x.postUrl || '',\n      subreddit: x.communityName || x.parsedCommunityName || '',\n      score: x.upVotes ?? x.score ?? null,\n      depth: x.depth ?? null\n    };\n  })\n  .filter(x => x.text.trim().length > 0);\n\nreturn [{\n  json: {\n    community_data: cleaned,\n    total_items: cleaned.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4650,
+        350
+      ],
+      "id": "b3259523-f4e1-4463-b470-730fe3cba8ed",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const communityData = $json.community_data;\n\nconst requestBody = {\n  model: \"openai/gpt-5-mini\",\n  messages: [\n    {\n      role: \"system\",\n      content: `You are a Voice of Customer researcher for a product marketing content team.\n\nAnalyze Reddit discussions to identify genuine user problems, behaviors, workarounds, desires, language patterns, and disagreements.\n\nThe product category is AI context management / portable AI context.\n\nPrimary brand audience:\n- Heavy AI users / AI power users\n- Especially marketers, freelancers, knowledge workers, and project managers\n- People who repeatedly use multiple AI tools across ongoing work, projects, or clients\n\nSecondary audience:\n- Founders and small AI-native teams\n\nDo NOT let developer-heavy Reddit discussions automatically define the target audience.\n\nResearch principles:\n- Prioritize first-person experiences and concrete workflows.\n- Distinguish recurring patterns from isolated comments.\n- Treat upvotes as a signal of resonance, not proof.\n- Do not invent frequency or consensus.\n- Do not invent quotes.\n- Separate user evidence from your interpretation.\n- Ignore obvious spam, promotional comments, and irrelevant discussion.\n- Developer experiences may be included when they reveal a broader cross-tool context problem, but do not center infrastructure concerns unless they are relevant to the primary audience.\n\nReturn valid JSON only.`\n    },\n    {\n      role: \"user\",\n      content: `Analyze the following Reddit community research dataset:\n\n${JSON.stringify(communityData)}\n\nProduce this JSON structure:\n\n{\n  \"recurring_pain_points\": [\n    {\n      \"pain\": \"\",\n      \"evidence\": \"\",\n      \"strength\": \"high|medium|low\",\n      \"source_urls\": []\n    }\n  ],\n  \"workarounds\": [\n    {\n      \"workaround\": \"\",\n      \"why_users_use_it\": \"\",\n      \"limitations\": \"\",\n      \"source_urls\": []\n    }\n  ],\n  \"user_language\": [\n    {\n      \"phrase\": \"\",\n      \"context\": \"\",\n      \"source_url\": \"\"\n    }\n  ],\n  \"desired_outcomes\": [\n    {\n      \"desire\": \"\",\n      \"evidence\": \"\",\n      \"source_urls\": []\n    }\n  ],\n  \"behavior_patterns\": [],\n  \"questions_users_ask\": [],\n  \"contrarian_or_skeptical_views\": [],\n  \"audience_relevance\": {\n    \"primary_audience_signals\": [],\n    \"developer_specific_signals\": [],\n    \"cross_audience_signals\": []\n  },\n  \"content_opportunities\": [\n    {\n      \"opportunity\": \"\",\n      \"why_it_matters\": \"\",\n      \"supporting_evidence\": \"\"\n    }\n  ],\n  \"community_summary\": \"\"\n}\n\nImportant:\n- \"user_language\" must use short exact phrases from the dataset, not invented paraphrases.\n- Do not infer that something is common merely because one highly upvoted comment says it.\n- Source URLs must come from the provided dataset.\n- Content opportunities should emerge from user problems and questions, not from product promotion.\n- Do not recommend an article angle solely because developers discuss it.\n- Focus on insights useful for deciding what content AI power users would genuinely care about.`\n    }\n  ],\n  temperature: 0.2\n};\n\nreturn [{\n  json: {\n    requestBody\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4890,
+        350
+      ],
+      "id": "b287b5f3-307f-45db-a956-514fb93e2300",
+      "name": "Code Prepare Community Insights Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=model",
+              "value": "={{ $json.requestBody.model }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ $json.requestBody.messages }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ $json.requestBody.temperature }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5130,
+        350
+      ],
+      "id": "20bb4fcb-3acb-444a-a887-ea6e46915a4e",
+      "name": "OpenRouter - Community Insights"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices[0].message.content;\n\nconst insights = JSON.parse(content);\n\nreturn [{\n  json: insights\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5370,
+        350
+      ],
+      "id": "afe41078-28c0-4e53-a2a8-97b14d388d33",
+      "name": "Code - Parse Community Insights"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5650,
+        0
+      ],
+      "id": "29379713-9e95-4374-9117-89196cac464d",
+      "name": "Merge - Web + Community Research"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        720,
+        0
+      ],
+      "id": "1954c3b6-99b6-4baa-aa24-20cf2c7ddb14",
+      "name": "Get content enginee in sheet"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5900,
+        -260
+      ],
+      "id": "627bb151-cc6d-4752-bbcc-97970b588f03",
+      "name": "Get Brand Context in sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sourceData = $json;\n\nconst topicRow = $('Normalize Topic Input').item.json;\n\nconst data = {\n  topic: topicRow.Topic || \"\",\n  primary_keyword:\n    topicRow['Primary Keyword'] ||\n    topicRow.keyword ||\n    \"\",\n  team_suggested_angle: topicRow.Angle || \"\",\n  team_suggested_pov: topicRow.POV || \"\",\n  weekly_memory_source: topicRow.idea_source === \"memory\" ? {week: topicRow.memory_week, context_id: topicRow.memory_context_id} : null,\n  ...sourceData\n};\n\nconst contentObjective =\n  $('Normalize Topic Input').item.json['Content objective'] || '';\n\nconst systemPrompt = `\nYou are the senior content strategist for AI Context Flow.\n\nYour responsibility is to transform research evidence, search intent,\naudience needs, and brand positioning into a coherent SEO article strategy.\n\nYou are NOT writing the article.\nYou are NOT generating the detailed outline.\n\nYour output must guide the downstream Outline Agent and Article Writer.\n\nThe strategy must satisfy the reader's original search intent while\ncreating a meaningful connection to AI Context Flow where appropriate.\n\n\nEDITORIAL PRIORITY HIERARCHY\n\nWhen strategic inputs compete, apply this order:\n\n1. Primary keyword and search intent\n2. Reader's actual information need\n3. Evidence-backed content opportunities\n4. Target audience and appropriate depth\n5. Content objective\n6. AI Context Flow positioning and product relevance\n\nNever sacrifice search intent to force a product narrative.\n\nTreat a team-suggested POV as an editorial hypothesis. Use the research to support, qualify, or reject it; do not present it as a fact without evidence.\n\nA product-relevant angle is useful only when it helps answer\nthe reader's original question.\n\n\nSEARCH INTENT RULES\n\nIdentify the primary keyword and search intent from the input data.\n\nThe article must directly satisfy that intent.\n\nINFORMATIONAL\n\nThe reader wants to understand a concept, definition, mechanism,\ncategory, benefit, limitation, or implication.\n\nPrioritize:\n- Direct answer or definition\n- Clear explanation of how it works\n- Important types or distinctions\n- Concrete examples\n- Benefits and limitations\n- Practical implications\n\nFor a \"what is\" keyword, the recommended title must clearly\nidentify and explain the searched concept.\n\nDo not turn an informational article into a lengthy tutorial\nmerely because a workflow is relevant to the product.\n\nHOW-TO\n\nThe reader wants to accomplish a task.\n\nPrioritize:\n- Problem and desired outcome\n- Prerequisites\n- Actionable steps\n- Examples\n- Common mistakes\n- Results\n\nCOMPARISON\n\nThe reader wants to understand differences between approaches,\nproducts, concepts, or solutions.\n\nPrioritize:\n- Comparison criteria\n- Key differences\n- Strengths and limitations\n- Use-case suitability\n- Decision guidance\n\nCOMMERCIAL INVESTIGATION\n\nThe reader is evaluating possible solutions.\n\nPrioritize:\n- Needs and evaluation criteria\n- Relevant options\n- Capabilities and tradeoffs\n- Evidence-backed comparisons\n- Decision guidance\n\nIf search intent is missing or ambiguous, infer it from the\nprimary keyword and topic.\n\nDo not invent a different keyword to justify a preferred angle.\n\n\nAUDIENCE STRATEGY\n\nDistinguish between:\n\n- Search audience: people who search for the topic\n- Brand audience: people AI Context Flow is designed for\n- Article audience: the specific readers this article should serve\n\nDo not automatically choose the largest search audience.\n\nAI Context Flow primarily serves multi-tool AI users and\nAI-native knowledge workers.\n\nRelevant audiences include:\n- AI power users\n- Knowledge workers\n- Freelancers\n- Marketers\n- Project managers\n- Founders and small AI-native teams\n\nDevelopers, ML engineers, and infrastructure engineers are not\nthe primary audience unless the supplied Brand Context or topic\nexplicitly establishes them as the target.\n\nChoose examples and terminology that the selected audience\ncan understand.\n\nDo not let technical research dominate a nontechnical article.\n\n\nCONTENT GAP RULE\n\nSelect ONE primary content gap.\n\nA good content gap identifies something the target reader\nneeds to understand that existing content does not adequately explain.\n\nThe gap must satisfy all three conditions:\n\n1. It is directly relevant to the primary keyword.\n2. It addresses a genuine reader question or unmet need.\n3. It creates useful differentiation supported by the research.\n\nProduct relevance is an additional advantage, not permission\nto change the article's topic.\n\nFor an informational keyword, a practical perspective can\ndifferentiate the explanation.\n\nHowever, a practical perspective must not transform an\nexplainer into an unrelated how-to article.\n\nFor example:\n\nKeyword: \"what is ai memory\"\n\nSuitable gap:\nExplain AI memory types and limitations using examples\nfrom everyday AI workflows, including the difference\nbetween platform-specific memory and portable context.\n\nUnsuitable gap:\nA comprehensive tutorial for building a portable-context\nmanagement workflow.\n\nThe unsuitable gap could support a separate how-to article,\nbut it does not fully match the original informational intent.\n\n\nCONTENT OBJECTIVE\n\nThe supplied Content objective is authoritative.\n\nAllowed values:\n- authority\n- product_education\n\nPreserve the supplied value exactly.\n\nSearch intent and content objective are separate dimensions.\n\nSearch intent determines what the article must answer.\n\nContent objective determines the strategic value the article\nshould create for AI Context Flow.\n\nAUTHORITY\n\nBuild trust and category expertise through useful,\naccurate, well-supported explanations.\n\nDo not force a product connection.\n\nProduct relevance may be light, contextual, or absent.\n\nPRODUCT_EDUCATION\n\nHelp relevant readers understand a concept, problem,\nworkflow, or decision that AI Context Flow addresses.\n\nExplain why the topic matters to their work.\n\nConnect the educational insights to the product naturally,\nwithout turning the article into an advertisement.\n\nDo not require every product-education article to follow\na problem → workaround → workflow → product structure.\n\nInstead, adapt the narrative to search intent.\n\nFor an informational article:\nExplain the concept first, then show its practical\nimplications and relevant product connection.\n\nFor a how-to article:\nTeach the workflow first, then connect the product\nto the problem or task where appropriate.\n\nFor a comparison article:\nExplain the alternatives and tradeoffs fairly.\n\nThe article must remain useful without adopting AI Context Flow.\n\n\nCORE ARGUMENT\n\nThe core argument must directly answer or illuminate\nthe primary search query.\n\nIt should express ONE central editorial thesis.\n\nIt must not introduce a different topic.\n\nFor informational content, the argument should explain\nwhat the concept means, how it works, or why it matters.\n\nFor how-to content, the argument may emphasize a\nrecommended workflow or method.\n\nFor comparison content, the argument may explain\nthe tradeoffs that determine the right choice.\n\nAvoid generic statements such as \"AI memory is important.\"\n\nAvoid overcomplicated theses that combine unrelated\ntechnical mechanisms, workflows, and product messaging.\n\n\nUNIQUE POINT OF VIEW\n\nDevelop a distinctive, defensible editorial perspective.\n\nIt should:\n- Be relevant to the keyword\n- Be useful to the selected audience\n- Follow logically from the research\n- Help readers understand or decide something\n\nDistinguish editorial interpretation from verified fact.\n\nDo not invent evidence to support a provocative argument.\n\nAvoid abstract or artificial-sounding phrases that\ncannot be explained clearly to a nontechnical reader.\n\n\nPRODUCT TRUTH\n\nAI Context Flow is a specific, real product.\n\nIt is not a generic product category.\n\n\"Open Context Layer\" describes its broader positioning.\n\nOnly describe capabilities explicitly established by\nthe supplied Brand Context or input data.\n\nDo not infer that the product has a feature merely because\nthat feature would be useful or typical in the category.\n\nDo not invent:\n- Integrations\n- Automatic synchronization capabilities\n- Import or export functionality\n- Security guarantees\n- Retention controls\n- Performance improvements\n- Customer results\n- Pricing or trial offers\n\nIf the input does not establish a capability,\ndo not claim it.\n\nConnect AI Context Flow to the problem it addresses\nwithout presenting unverified functionality as fact.\n\nFor product_education, product relevance should be\nclear but proportional to the reader's intent.\n\n\nTITLE RULES\n\nRecommend one primary title and three alternatives.\n\nThe recommended title must:\n- Match the primary keyword's search intent\n- Clearly communicate the article's main subject\n- Reflect the actual core argument\n- Be natural and readable\n- Avoid clickbait\n\nFor informational \"what is\" keywords, prefer a title\nthat explicitly names the concept and promises an explanation.\n\nDo not recommend a how-to title for an informational\nkeyword unless the keyword itself expresses how-to intent.\n\nThe primary keyword should appear naturally in the\nrecommended title when appropriate.\n\nDo not keyword-stuff.\n\n\nARTICLE TYPE\n\nChoose the format that best satisfies search intent.\n\nAllowed formats:\n- practical guide\n- thought leadership\n- comparison\n- explainer\n- trend analysis\n- workflow guide\n- hybrid\n\nAn informational \"what is\" keyword will generally\nrequire an explainer or an appropriate hybrid.\n\nDo not choose a workflow guide merely because the\ncontent objective is product_education.\n\n\nCTA RULES\n\nChoose an appropriate next step based on:\n- Search intent\n- Funnel stage\n- Content objective\n- Product relevance\n\nFor authority:\nPrefer continued education or exploration.\n\nFor product_education:\nProduct consideration may be appropriate when\nthe article naturally establishes relevance.\n\nDo not automatically recommend a free trial.\n\nDo not imply that a downloadable resource,\ntemplate, webinar, report, demo, or other conversion\nasset exists unless it is explicitly supplied.\n\n\nOUTLINE DIRECTION\n\nProvide instructions for the downstream Outline Agent.\n\nThe outline direction must:\n- Explicitly prioritize the primary search intent\n- Specify the most suitable article structure\n- Identify the essential questions to answer\n- Preserve the selected audience and content gap\n- Prevent unnecessary repetition\n- Explain where product relevance belongs\n- Avoid unnecessary technical depth\n\nFor informational content, answer the reader's\nprimary question early.\n\nFor how-to content, prioritize actionable steps.\n\nFor comparison content, prioritize fair tradeoffs.\n\nDo not force the same narrative structure on every article.\n\n\nFINAL CONSISTENCY CHECK\n\nBefore returning the strategy, internally verify:\n\n1. Does the recommended title match the primary keyword?\n2. Does the core argument address the reader's search intent?\n3. Is the content gap relevant to the original query?\n4. Does the article type fit the search intent?\n5. Does the outline direction support the chosen article type?\n6. Is the product connection natural and evidence-based?\n7. Is the strategy focused enough to avoid repetitive sections?\n\nIf any answer is no, revise the strategy before returning it.\n\nReturn ONLY valid JSON without markdown.\n`;\n\nconst userPrompt = `\nCreate an SEO article strategy using the supplied\nresearch and brand context.\n\n\nCONTENT OBJECTIVE:\n\n${contentObjective}\n\nThis objective has already been decided upstream.\n\nPreserve it exactly.\n\nDo not reclassify it.\n\n\nINPUT DATA:\n\n${JSON.stringify(data, null, 2)}\n\n\nMAKE THE FOLLOWING STRATEGIC DECISIONS:\n\n\n1. ARTICLE TARGET AUDIENCE\n\nChoose the most relevant audience for this article.\n\nExplain why this audience would search for the topic.\n\nAvoid choosing a technical audience merely because\ntechnical sources dominate the research.\n\n\n2. READER PROBLEM\n\nIdentify the primary question or information need\nbehind the search.\n\nFor informational queries, this may be a knowledge gap,\nnot necessarily an operational frustration.\n\nDo not manufacture a pain point.\n\n\n3. CONTENT GAP TO OWN\n\nSelect ONE evidence-backed gap.\n\nThe gap must improve the article's answer to the\nprimary search query.\n\nDo not select a different topic simply because it\ncreates a stronger product connection.\n\n\n4. CORE ARGUMENT\n\nWrite one central thesis.\n\nIt must align with:\n- Primary keyword\n- Search intent\n- Recommended article type\n- Reader's information need\n\nDo not turn a definition-oriented keyword into\nan unrelated workflow tutorial.\n\n\n5. UNIQUE POV\n\nIdentify a useful editorial perspective that\ndifferentiates the article.\n\nKeep it grounded in research.\n\nTreat interpretations as arguments, not proven facts.\n\n\n6. PRODUCT CONNECTION\n\nDetermine the appropriate role for AI Context Flow.\n\nFor authority:\nA light connection or no direct product role\nmay be appropriate.\n\nFor product_education:\nExplain the natural connection between what the\nreader learns and the problem AI Context Flow addresses.\n\nDo not invent product features.\n\nDo not distort the article to create product relevance.\n\n\n7. ARTICLE TYPE\n\nChoose one:\n- practical guide\n- thought leadership\n- comparison\n- explainer\n- trend analysis\n- workflow guide\n- hybrid\n\nThe type must match search intent.\n\n\n8. TITLE\n\nRecommend one primary title and three alternatives.\n\nThe primary title must clearly match the keyword,\nsearch intent, and core argument.\n\nFor \"what is\" keywords, prefer an explanatory title.\n\n\n9. CTA\n\nRecommend a next step appropriate to:\n- Search intent\n- Funnel stage\n- Content objective\n- Product relevance\n\nDo not invent an existing conversion asset.\n\n\n10. OUTLINE DIRECTION\n\nExplain what the future Outline Agent should accomplish.\n\nSpecify:\n- The reader's primary question\n- The recommended article structure\n- Essential concepts and examples\n- Appropriate technical depth\n- How to avoid repetitive sections\n- Where product relevance naturally belongs\n\nDo not write the detailed outline yet.\n\n\nFINAL VALIDATION\n\nBefore producing the JSON, check that the following\nfields describe the SAME article:\n\n- primary_keyword\n- reader_problem\n- content_gap_to_own\n- core_argument\n- article_type\n- recommended_title\n- outline_direction\n\nIf they conflict, revise them until they align.\n\n\nReturn exactly this JSON structure:\n\n{\n  \"content_objective\": \"\",\n  \"article_target_audience\": {\n    \"primary\": \"\",\n    \"why\": \"\"\n  },\n  \"funnel_stage\": \"\",\n  \"reader_problem\": \"\",\n  \"content_gap_to_own\": {\n    \"gap\": \"\",\n    \"why_this_gap\": \"\"\n  },\n  \"core_argument\": \"\",\n  \"unique_pov\": \"\",\n  \"product_connection\": {\n    \"role\": \"\",\n    \"how_to_mention\": \"\",\n    \"avoid\": \"\"\n  },\n  \"article_type\": \"\",\n  \"recommended_title\": \"\",\n  \"alternative_titles\": [],\n  \"primary_keyword\": \"\",\n  \"supporting_topics\": [],\n  \"cta\": {\n    \"type\": \"\",\n    \"message\": \"\"\n  },\n  \"outline_direction\": \"\",\n  \"strategy_rationale\": \"\"\n}\n\n\nRules:\n\n- Return valid JSON only.\n- Do not include markdown.\n- content_objective must exactly preserve the supplied Content objective.\n- content_objective must be either \"authority\" or \"product_education\".\n- Do not invent facts, statistics, product capabilities, or customer evidence.\n- Treat unique_pov and core_argument as editorial strategy, not factual evidence.\n- Keep the strategy specific enough to guide an Outline Agent.\n- Avoid generic AI hype and generic SEO language.\n`;\n\nreturn {\n  json: {\n    requestBody: {\n      model: \"openai/gpt-5-mini\",\n      messages: [\n        {\n          role: \"system\",\n          content: systemPrompt.trim()\n        },\n        {\n          role: \"user\",\n          content: userPrompt.trim()\n        }\n      ],\n      temperature: 0.3\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6450,
+        0
+      ],
+      "id": "dbea5de1-2b6b-45d8-b4eb-03db06a6516f",
+      "name": "Generate Article Strategy"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic": "={{ $json.Topic }}",
+            "article_audience": "={{ $json.article_target_audience }}",
+            "content_gap": "={{ $json.content_gap_to_own }}",
+            "core_argument": "={{ $json.core_argument }}",
+            "unique_pov": "={{ $json.unique_pov }}",
+            "recommend_title": "={{ $json.recommended_title }}",
+            "source_row": "={{ $json.source_row }}",
+            "Primary Keyword": "={{ $json.primary_keyword }}",
+            "Search Volume": "={{ $('Normalize Topic Input').item.json['Search Volume'] }}",
+            "KD": "={{ $('Normalize Topic Input').item.json['KD'] }}",
+            "Intent": "={{ $('Normalize Topic Input').item.json['Intent'] }}",
+            "Product relevance": "={{ $('Normalize Topic Input').item.json['Product relevance'] }}",
+            "Angle": "={{ $('Normalize Topic Input').item.json['Angle'] }}",
+            "Content objective": "={{ $json.content_objective }}",
+            "approval": "={{ false }}"
+          },
+          "matchingColumns": [
+            "Primary Keyword"
+          ],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Primary Keyword",
+              "displayName": "Primary Keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Search Volume",
+              "displayName": "Search Volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "KD",
+              "displayName": "KD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Content objective",
+              "displayName": "Content objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product relevance",
+              "displayName": "Product relevance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Angle",
+              "displayName": "Angle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_row",
+              "displayName": "source_row",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "article_audience",
+              "displayName": "article_audience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_gap",
+              "displayName": "content_gap",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "core_argument",
+              "displayName": "core_argument",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unique_pov",
+              "displayName": "unique_pov",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommend_title",
+              "displayName": "recommend_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval",
+              "displayName": "approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        7480,
+        240
+      ],
+      "id": "13d8a1d8-3d81-4e42-aabb-bf0e1fdfe8ef",
+      "name": "Append or update row in sheet"
+    },
+    {
+      "id": "98ae0667-80ad-4f7f-b9d6-2051a7bd030d",
+      "name": "Choose Idea Source",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -60,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04c8b70f-d6c6-4dfd-9856-39a41dcaef88",
+              "name": "idea_source",
+              "value": "sheet",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "61605a89-cd16-4bc2-bfd5-33ecaa99bf77",
+      "name": "Validate Idea Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const source = String($json.idea_source || '').trim().toLowerCase(); if (!['sheet','memory'].includes(source)) throw new Error('Choose Idea Source must be sheet or memory'); return {json:{...$json,idea_source:source}};"
+      }
+    },
+    {
+      "id": "3548e5a8-6290-4bfb-9f43-fcf63d85cfa4",
+      "name": "Use Weekly Memory Ideas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        420,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b35899f6-293e-4fc7-aab1-79896dd613a9",
+              "leftValue": "={{ $json.idea_source }}",
+              "rightValue": "memory",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "10b821a7-daf6-4e26-9c9f-3e0f03381e26",
+      "name": "List ACF Blogs Ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -620
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.plurality.network/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json, text/event-stream\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"jsonrpc\": \"2.0\", \"id\": 41, \"method\": \"tools/call\", \"params\": {\"name\": \"list_items_in_memory_bucket\", \"arguments\": {\"profile_id\": \"REPLACE_WITH_YOUR_ACF_BLOG_IDEAS_BUCKET_ID\"}}}",
+        "options": {}
+      }
+    },
+    {
+      "id": "097da0c7-70ec-492b-8f54-07d97b733d14",
+      "name": "Select Current Week Memory",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -620
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json.result;\nif (!response || response.isError || $json.error) throw new Error('Cannot list ACF Blogs Ideas: ' + JSON.stringify($json.error || response));\nconst text = response.structuredContent?.result || response.content?.find(c => c.type === 'text')?.text;\nif (typeof text !== 'string') throw new Error('ACF Blogs Ideas list has no readable result');\nconst parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {\n  timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit'\n}).formatToParts(new Date()).filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)]));\nconst today = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));\nconst monday = new Date(today.getTime() - ((today.getUTCDay() + 6) % 7) * 86400000);\nconst friday = new Date(monday.getTime() + 4 * 86400000);\nconst ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({1:'st',2:'nd',3:'rd'}[n % 10] || 'th'));\nconst month = d => new Intl.DateTimeFormat('en-GB', {month:'short',timeZone:'UTC'}).format(d);\nconst startYear = monday.getUTCFullYear();\nconst weekTitle = ordinal(monday.getUTCDate()) + ' ' + month(monday) +\n  (startYear === friday.getUTCFullYear() ? '' : ' ' + startYear) + '-' +\n  ordinal(friday.getUTCDate()) + ' ' + month(friday) + ' ' + friday.getUTCFullYear();\nconst norm = s => s.normalize('NFKC').replace(/[–—]/g, '-').replace(/\\s*-\\s*/g, '-').replace(/\\s+/g,' ').trim().toLowerCase();\nconst matches = [...text.matchAll(/^- \\*\\*(.+?)\\*\\* \\(contextId: ([0-9a-f-]{36})\\)/gmi)]\n  .filter(m => norm(m[1]) === norm(weekTitle));\nif (matches.length > 1) throw new Error('Duplicate weekly memories named ' + weekTitle);\nif (!matches.length && !/No items found|Found \\d+ item\\(s\\)/i.test(text)) throw new Error('Unrecognized ACF item-list format');\nreturn {json:{memory_week:weekTitle,memory_context_id:matches[0]?.[2] || '',memory_bucket_id:'REPLACE_WITH_YOUR_ACF_BLOG_IDEAS_BUCKET_ID'}};"
+      }
+    },
+    {
+      "id": "48d7e9e2-3cd0-48af-a3f4-5832aa3d16bf",
+      "name": "Weekly Memory Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        -620
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bddd5aaf-9a71-41ac-844d-0dc43448396f",
+              "leftValue": "={{ $json.memory_context_id ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a7d1d399-bb0e-44db-a70e-99c382f2ff82",
+      "name": "Read Current Week Memory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        -620
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.plurality.network/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\"Content-Type\":\"application/json\",\"Accept\":\"application/json, text/event-stream\"}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    jsonrpc: '2.0',\n    id: 42,\n    method: 'tools/call',\n    params: {\n      name: 'read_context',\n      arguments: {\n        context_id: $json.memory_context_id\n      }\n    }\n  }\n}}",
+        "options": {}
+      }
+    },
+    {
+      "id": "bb1f2bc4-aecc-4e92-b4f4-8d78a5badf3c",
+      "name": "Extract Weekly Ideas Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -620
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json.result;\nif (!response || response.isError || $json.error) throw new Error('Cannot read weekly ideas: ' + JSON.stringify($json.error || response));\nconst text = response.structuredContent?.result || response.content?.find(c => c.type === 'text')?.text;\nif (typeof text !== 'string') throw new Error('Weekly ideas has no readable result');\nconst marker = text.match(/\\nupdatedAt: [^\\n]+\\n\\n/);\nif (!marker) throw new Error('Unrecognized weekly ideas content format');\nconst content = text.slice(marker.index + marker[0].length).trim();\nif (!content) throw new Error('Weekly ideas memory is empty');\nif (content.length > 20000) throw new Error('Weekly ideas memory exceeds 20,000 characters');\nconst source = $('Select Current Week Memory').item.json;\nreturn {json:{...source,memory_content:content}};"
+      }
+    },
+    {
+      "id": "d49b945f-8fa0-404a-ab4e-8a443eda0993",
+      "name": "Prepare Memory Idea Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -620
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const note = $json;\nconst system = `You organize a marketing team's weekly ideas for AI Context Flow.\nExtract only distinct BLOG article ideas from the note. Social-only ideas are excluded.\nAn inspiration or point of view is a hypothesis, not a verified fact.\nReturn JSON only: {\"blog_ideas\":[{\"topic\":\"\",\"primary_keyword\":\"\",\"angle\":\"\",\"pov\":\"\",\"product_relevance\":\"\",\"content_objective\":\"authority or product_education\",\"strategic_pillar\":\"\"}]}.\nReturn at most 3 ideas. If the note contains no usable blog idea, return an empty array.\nKeep the team's meaning. Do not invent search volume, keyword difficulty, evidence, URLs, product capabilities, or approval.\nThe keyword is a tentative search phrase for the existing research workflow; its intent and suitability will be researched there.`;\nreturn {json:{...note,system_prompt:system,user_prompt:'Weekly memory: '+note.memory_week+'\\n\\n'+note.memory_content}};"
+      }
+    },
+    {
+      "id": "b67d562e-889d-494b-9703-21cb73614154",
+      "name": "OpenRouter - Extract Blog Ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2160,
+        -620
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    model: 'openai/gpt-5-mini',\n    messages: [\n      {role: 'system', content: $json.system_prompt},\n      {role: 'user', content: $json.user_prompt}\n    ],\n    response_format: {type: 'json_object'},\n    temperature: 0.1\n  }\n}}",
+        "options": {}
+      }
+    },
+    {
+      "id": "7be95ba3-eb0d-47ad-bc1a-83542b137fc3",
+      "name": "Parse Weekly Blog Ideas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        -620
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.choices?.[0]?.message?.content;\nif (!raw) throw new Error('No blog idea extraction response');\nlet data;\ntry {data = JSON.parse(raw.replace(/^```json\\s*/i,'').replace(/^```\\s*/,'').replace(/```\\s*$/,'').trim());}\ncatch(e) {throw new Error('Blog idea extraction was not JSON: '+e.message);}\nif (!Array.isArray(data.blog_ideas) || data.blog_ideas.length > 3) throw new Error('Expected 0-3 blog ideas');\nconst source = $('Prepare Memory Idea Candidates').first().json;\nconst seen = new Set();\nreturn data.blog_ideas.map((v,i) => {\n  if (!v || typeof v !== 'object') throw new Error('Invalid blog idea at index '+i);\n  const topic = String(v.topic || '').trim();\n  const keyword = String(v.primary_keyword || '').trim();\n  if (!topic || !keyword) throw new Error('Blog idea needs a topic and tentative keyword');\n  const key = keyword.toLowerCase();\n  if (seen.has(key)) throw new Error('Duplicate keyword in weekly ideas: '+keyword);\n  seen.add(key);\n  const objective = String(v.content_objective || 'authority').trim().toLowerCase();\n  if (!['authority','product_education'].includes(objective)) throw new Error('Invalid content objective for '+topic);\n  return {json:{\n    Topic:topic,'Primary Keyword':keyword,'Strategic Pillar':String(v.strategic_pillar||'').trim(),\n    'Product relevance':String(v.product_relevance||'').trim(),Angle:String(v.angle||'').trim(),\n    POV:String(v.pov||'').trim(),'Content objective':objective,\n    'Search Volume':'',KD:'',Intent:'',Status:'idea',Generate:true,\n    idea_source:'memory',memory_week:source.memory_week,\n    memory_context_id:source.memory_context_id,memory_idea_index:i+1,\n    row_number:null\n  },pairedItem:{item:0}};\n});"
+      }
+    },
+    {
+      "id": "67e55ad6-1030-4a98-90a3-2e3737c3a6fa",
+      "name": "Normalize Topic Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2670,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {json:{...$json,idea_source:$json.idea_source === 'memory' ? 'memory' : 'sheet'}};"
+      }
+    },
+    {
+      "id": "3a4b53df-2c59-4f14-b4a1-f39fd0002ff7",
+      "name": "Memory Strategy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7230,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1ebdea13-0fe0-4e0b-bd63-70c2b6ed98a2",
+              "leftValue": "={{ $json.idea_source }}",
+              "rightValue": "memory",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8819c656-98de-4485-a1f2-b6027453dd8d",
+      "name": "No Weekly Memory Note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        -450
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {json:{status:'no_weekly_memory',week:$json.memory_week,message:'Add a memory named '+$json.memory_week+' to ACF Blogs Ideas, then run the memory source again.'}};"
+      }
+    },
+    {
+      "id": "c9be9510-0865-4b32-bdbe-842560b567f7",
+      "name": "01B • WEEKLY ACF BLOG IDEAS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        650,
+        -930
+      ],
+      "parameters": {
+        "content": "## 01B · Weekly team ideas from AI Context Flow\nWith `idea_source=memory`, list **ACF Blogs Ideas** and choose the current Monday–Friday note, named like `26th Oct-30th Oct 2026`. Read its content and extract up to three **blog** ideas; social-only ideas are skipped. If no note exists, **No Weekly Memory Note** stops this branch. Parsed ideas join the same research path at **Normalize Topic Input**.",
+        "width": 2050,
+        "height": 630,
+        "color": 4
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic": "={{ $json.Topic }}",
+            "article_audience": "={{ $json.article_target_audience }}",
+            "content_gap": "={{ $json.content_gap_to_own }}",
+            "core_argument": "={{ $json.core_argument }}",
+            "unique_pov": "={{ $json.unique_pov }}",
+            "recommend_title": "={{ $json.recommended_title }}",
+            "source_row": "={{ $json.source_row }}",
+            "Primary Keyword": "={{ $json.primary_keyword }}",
+            "Search Volume": "={{ $('Normalize Topic Input').item.json['Search Volume'] }}",
+            "KD": "={{ $('Normalize Topic Input').item.json['KD'] }}",
+            "Intent": "={{ $('Normalize Topic Input').item.json['Intent'] }}",
+            "Product relevance": "={{ $('Normalize Topic Input').item.json['Product relevance'] }}",
+            "Angle": "={{ $('Normalize Topic Input').item.json['Angle'] }}",
+            "Content objective": "={{ $json.content_objective }}",
+            "approval": "={{ false }}"
+          },
+          "matchingColumns": [
+            "source_row"
+          ],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Primary Keyword",
+              "displayName": "Primary Keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Search Volume",
+              "displayName": "Search Volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "KD",
+              "displayName": "KD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Content objective",
+              "displayName": "Content objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product relevance",
+              "displayName": "Product relevance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Angle",
+              "displayName": "Angle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_row",
+              "displayName": "source_row",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "article_audience",
+              "displayName": "article_audience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_gap",
+              "displayName": "content_gap",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "core_argument",
+              "displayName": "core_argument",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unique_pov",
+              "displayName": "unique_pov",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommend_title",
+              "displayName": "recommend_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval",
+              "displayName": "approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        7480,
+        -260
+      ],
+      "id": "6a79c383-272e-45a5-8b15-77c1f7738cd0",
+      "name": "Append Memory Strategy for Approval"
+    },
+    {
+      "id": "c66748f1-3b1a-4fc5-8271-80c033c3abe9",
+      "name": "01A • GOOGLE SHEETS TOPICS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        650,
+        -270
+      ],
+      "parameters": {
+        "content": "## 01A · Google Sheets topics\nWith `idea_source=sheet`, read topic rows from the content engine sheet. Each row goes to **Normalize Topic Input**, then **If** keeps eligible topics. This is the established research route.",
+        "width": 530,
+        "height": 400,
+        "color": 2
+      }
+    },
+    {
+      "id": "e9187876-d280-451f-8b12-584c553cd402",
+      "name": "02 • NORMALIZE & CHECK",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2590,
+        -270
+      ],
+      "parameters": {
+        "content": "## 02 · One topic format\n**Normalize Topic Input** turns either source into the fields expected by research. **If** filters out rows that should not proceed. A passing topic fans out to web research and community research.",
+        "width": 550,
+        "height": 400,
+        "color": 3
+      }
+    },
+    {
+      "id": "1534722e-fdd8-4b39-ad18-38ebe29133dd",
+      "name": "03 • WEB RESEARCH",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3140,
+        -390
+      ],
+      "parameters": {
+        "content": "## 03 · Web research\n**HTTP Request** asks OpenRouter for web research on the topic. **Code in JavaScript** parses the response and passes the evidence toward the combined research result. The same path runs for sheet and memory ideas.",
+        "width": 600,
+        "height": 420,
+        "color": 5
+      }
+    },
+    {
+      "id": "3fed9ff1-7728-4459-addc-bdda2be4dd94",
+      "name": "04 • COMMUNITY RESEARCH",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3140,
+        90
+      ],
+      "parameters": {
+        "content": "## 04 · Community research\n**Search web** finds relevant discussions. OpenRouter selects useful threads; **Split Out** and **Aggregate** prepare URLs for the Apify actor. The next code nodes prepare and parse community insights. This lane provides real questions and viewpoints for the strategy; it joins the web lane at **Merge - Web + Community Research**.",
+        "width": 2450,
+        "height": 500,
+        "color": 6
+      }
+    },
+    {
+      "id": "85b6ad53-80dc-4134-aeac-a21f0f483508",
+      "name": "05 • COMBINE EVIDENCE & BRAND",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5600,
+        -390
+      ],
+      "parameters": {
+        "content": "## 05 · Combine evidence and brand context\n**Merge - Web + Community Research** joins community findings with web research. **Get Brand Context in sheet** adds current brand guidance. **Merge** then hands both sets of context to the strategy generator.",
+        "width": 750,
+        "height": 830,
+        "color": 7
+      }
+    },
+    {
+      "id": "cdda87a3-ec0b-4fac-acfb-ec70a6ccd77c",
+      "name": "06 • DRAFT CONTENT STRATEGY",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        6380,
+        -270
+      ],
+      "parameters": {
+        "content": "## 06 · Draft the strategy\n**Generate Article Strategy** builds the model request. **HTTP Request1** sends it to OpenRouter; **Code in JavaScript2** parses the structured strategy. Output includes the recommended article direction for human review.",
+        "width": 800,
+        "height": 400,
+        "color": 2
+      }
+    },
+    {
+      "id": "07bbf814-8f23-43b0-aa5f-f8ecd2ba0a7a",
+      "name": "07 • SAVE FOR HUMAN APPROVAL",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7180,
+        -390
+      ],
+      "parameters": {
+        "content": "## 07 · Save the review row\n**Memory Strategy?** sends memory-sourced ideas to **Append Memory Strategy for Approval** and sheet topics to **Append or update row in sheet**. Both land in the approval sheet. Memory rows use a stable `source_row` key for repeat runs and return with approval set to false. A human decides what advances.",
+        "width": 650,
+        "height": 830,
+        "color": 3
+      }
+    },
+    {
+      "id": "a83c9983-f2f4-4290-9265-1ed42e867fc7",
+      "name": "SETUP • CONTENT STRATEGY ON A NEW LAPTOP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -390,
+        -800
+      ],
+      "parameters": {
+        "content": "## Teammate setup · Content Strategy V1\n1. Import the workflow into your own n8n instance and install the Firecrawl and Apify community nodes used here.\n2. Configure the Google Sheets, OpenRouter, Firecrawl, Apify, and AI Context Flow credentials described beside their phases. Imported credential IDs do not give you access.\n3. Replace account-specific spreadsheet and bucket IDs, then choose `sheet` or `memory` in **Choose Idea Source**.\n4. Test with one approved topic first. A full run calls paid research/model services and writes to Human Approval #1.",
+        "width": 900,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "a3af6750-d422-49c6-94a5-7019d0aef380",
+      "name": "SETUP • ACF BLOG IDEAS MEMORY",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        650,
+        -1310
+      ],
+      "parameters": {
+        "content": "### External setup · AI Context Flow memory\nCreate or access your own **ACF Blogs Ideas** bucket. Add a note titled for the current Monday–Friday week (for example, `26th Oct-30th Oct 2026`). Connect your own PAT as an n8n HTTP Bearer credential on **List ACF Blogs Ideas** and **Read Current Week Memory**. Replace the bucket-ID placeholder in both **List ACF Blogs Ideas** and **Select Current Week Memory**. The endpoint is `https://app.plurality.network/mcp`; this is an outbound MCP call, separate from n8n’s own MCP settings.",
+        "width": 1200,
+        "height": 330,
+        "color": 7
+      }
+    },
+    {
+      "id": "8b72d91c-7aff-4f2f-aacb-7dc354d40626",
+      "name": "SETUP • CONTENT STRATEGY SHEETS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        650,
+        180
+      ],
+      "parameters": {
+        "content": "### External setup · Google Sheets\nConnect your own Google Sheets OAuth credential. Point **Get content enginee in sheet** to your Content Engine tab; point **Get Brand Context in sheet** to Brand Context; point both **Append…Approval** nodes to Human Approval #1. Select your spreadsheet and tabs, refresh column mappings, and check the `source_row` matching column. Give the Google account edit access to the destination sheet.",
+        "width": 1100,
+        "height": 370,
+        "color": 7
+      }
+    },
+    {
+      "id": "f8c3eb11-dad7-49e4-8187-702d754b5908",
+      "name": "SETUP • CONTENT STRATEGY OPENROUTER",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2750,
+        -800
+      ],
+      "parameters": {
+        "content": "### External setup · OpenRouter\nCreate an n8n Header Auth credential with your own OpenRouter API key and attach it to **HTTP Request**, **OpenRouter - Select Community Discussions**, **OpenRouter - Community Insights**, **OpenRouter - Extract Blog Ideas**, and **HTTP Request1**. Check each selected model and available credits. These requests use `https://openrouter.ai/api/v1/chat/completions`.",
+        "width": 930,
+        "height": 350,
+        "color": 7
+      }
+    },
+    {
+      "id": "51e7c824-9a72-4cd7-b2be-d46e85e1553c",
+      "name": "SETUP • FIRECRAWL AND APIFY",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3140,
+        650
+      ],
+      "parameters": {
+        "content": "### External setup · Community research\n**Search web** needs your Firecrawl API credential. **Run an Actor and get dataset** needs your Apify API credential and access to the selected Reddit comment scraper actor. Check actor ID, input schema, usage limits, and pricing in your own account. The surrounding OpenRouter selection/insights nodes use the separate OpenRouter credential. Run one topic to confirm the two research lanes return data before relying on strategy output.",
+        "width": 1300,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "5e9e1e5b-d3f7-4cd9-84f1-b7a5153866e6",
+      "name": "SETUP • BRAND CONTEXT SHEET",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5600,
+        500
+      ],
+      "parameters": {
+        "content": "### External setup · Brand context\n**Get Brand Context in sheet** reads the Brand Context tab from the connected Google spreadsheet. In an imported copy, replace the spreadsheet/tab IDs and reselect your Google Sheets OAuth credential. Keep the expected columns or update downstream mappings if your brand sheet uses different fields.",
+        "width": 750,
+        "height": 350,
+        "color": 7
+      }
+    },
+    {
+      "id": "422fd564-90e6-410a-8483-22f72c0a2c84",
+      "name": "SETUP • HUMAN APPROVAL #1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7180,
+        500
+      ],
+      "parameters": {
+        "content": "### External setup · Review destination\nBoth output nodes write to the Human Approval #1 tab using Google Sheets OAuth. Repoint both nodes to your own spreadsheet and review their field mappings and `source_row` upsert key. Strategies from memory return with approval false so a teammate can review them before Content Production reads them.",
+        "width": 650,
+        "height": 350,
+        "color": 7
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Choose Idea Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Search web",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get Brand Context in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge - Web + Community Research",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Generate Article Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Memory Strategy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search web": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Select Community Discussions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Select Community Discussions": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse Community Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse Community Selection": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor and get dataset": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor and get dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Code Prepare Community Insights Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Prepare Community Insights Request": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Community Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Community Insights": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse Community Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse Community Insights": {
+      "main": [
+        [
+          {
+            "node": "Merge - Web + Community Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge - Web + Community Research": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get content enginee in sheet": {
+      "main": [
+        [
+          {
+            "node": "Normalize Topic Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Brand Context in sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Generate Article Strategy": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose Idea Source": {
+      "main": [
+        [
+          {
+            "node": "Validate Idea Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Idea Source": {
+      "main": [
+        [
+          {
+            "node": "Use Weekly Memory Ideas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Weekly Memory Ideas?": {
+      "main": [
+        [
+          {
+            "node": "List ACF Blogs Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get content enginee in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List ACF Blogs Ideas": {
+      "main": [
+        [
+          {
+            "node": "Select Current Week Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Current Week Memory": {
+      "main": [
+        [
+          {
+            "node": "Weekly Memory Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Memory Exists?": {
+      "main": [
+        [
+          {
+            "node": "Read Current Week Memory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Weekly Memory Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Current Week Memory": {
+      "main": [
+        [
+          {
+            "node": "Extract Weekly Ideas Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Weekly Ideas Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare Memory Idea Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Memory Idea Candidates": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Extract Blog Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Extract Blog Ideas": {
+      "main": [
+        [
+          {
+            "node": "Parse Weekly Blog Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Weekly Blog Ideas": {
+      "main": [
+        [
+          {
+            "node": "Normalize Topic Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Topic Input": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory Strategy?": {
+      "main": [
+        [
+          {
+            "node": "Append Memory Strategy for Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

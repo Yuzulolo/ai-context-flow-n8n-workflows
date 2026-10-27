@@ -1,0 +1,1084 @@
+{
+  "name": "AI Context Flow -Content Production",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d8072e99-ada0-498c-90e7-8bd0fc16de4c",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "approval",
+              "lookupValue": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "258bcf58-130e-465c-8ae9-e79adc644d3e",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const x = $json;\n\nconst audience =\n  typeof x.article_audience === 'string'\n    ? JSON.parse(x.article_audience)\n    : x.article_audience;\n\nconst gap =\n  typeof x.content_gap === 'string'\n    ? JSON.parse(x.content_gap)\n    : x.content_gap;\n\nconst researchBrief = `\nYou are conducting deep research for an evidence-based article.\n\nARTICLE CONTEXT\n\nTopic:\n${x.Topic || ''}\n\nRecommended title:\n${x.recommend_title || ''}\n\nPrimary SEO keyword:\n${x['Primary Keyword'] || ''}\n\nSearch intent:\n${x.Intent || ''}\n\nArticle audience:\n${audience?.primary || ''}\n\nWhy this audience:\n${audience?.why || ''}\n\nContent gap:\n${gap?.gap || ''}\n\nWhy this gap matters:\n${gap?.why_this_gap || ''}\n\nCore argument:\n${x.core_argument || ''}\n\nProposed unique POV:\n${x.unique_pov || ''}\n\nEditorial angle:\n${x.Angle || ''}\n\n\nRESEARCH OBJECTIVE\n\nGather credible evidence, examples, explanations, competing viewpoints,\nand recent developments needed to write this article.\n\nDo not assume the proposed core argument or POV is correct.\nResearch should verify, refine, qualify, or challenge it where necessary.\n\nPrioritize research that helps answer:\n\n1. What problem do multi-tool AI users experience when context is fragmented\n   across AI tools, sessions, or workflows?\n\n2. What approaches currently exist for retaining, transferring, summarizing,\n   exporting, or re-anchoring AI context?\n\n3. What are the practical differences between moving full conversation history\n   and moving distilled/structured context?\n\n4. What evidence supports or challenges the proposed article argument?\n\n5. What privacy, security, consent, accuracy, context-loss, or memory-management\n   risks should users understand?\n\n6. What concrete workflows, examples, frameworks, or practices could make the\n   article genuinely useful to non-developer AI power users?\n\n7. What relevant recent product developments, standards, integrations,\n   research, or industry changes should the article mention?\n\n8. What important counterarguments or limitations should the article include?\n\n\nSOURCE PRIORITY\n\nPrioritize:\n- official product documentation and announcements\n- original research and technical papers\n- standards/specifications\n- credible technical publications\n- high-quality industry analysis\n- primary-source examples\n\nCommunity discussions may be used to demonstrate user pain, language,\nworkarounds, and experience, but should not be treated as authoritative\nevidence for technical claims.\n\nPrefer recent sources when the subject is changing quickly.\n\n\nOUTPUT REQUIREMENTS\n\nResearch only. Do not write the article.\n\nEvery factual claim that may need verification must be tied to a source URL.\n\nClearly distinguish:\n- verified facts\n- reasonable interpretations\n- community/user observations\n- unresolved or disputed claims\n\nDo not invent evidence to support the proposed POV.\n`;\n\nreturn {\n  json: {\n    ...x,\n    research_brief: researchBrief\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "95d59fbb-7ae9-48e6-899d-a92858c56337",
+      "name": "Prepare Deep Research Brief"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"openai/gpt-5-mini\",\n\n    \"messages\": [\n      {\n        \"role\": \"system\",\n        \"content\": `You are a rigorous research analyst supporting an evidence-based article.\n\nUse web research to investigate the supplied research brief.\n\nResearch principles:\n- Prefer primary and authoritative sources.\n- Verify important claims rather than assuming they are true.\n- Do not search only for evidence that supports the proposed argument.\n- Actively identify evidence that challenges, limits, or complicates the proposed POV.\n- Distinguish facts from interpretations and community observations.\n- Prefer recent sources for fast-changing AI products, standards, and capabilities.\n- Do not invent sources, URLs, statistics, quotations, product capabilities, or research findings.\n- If a claim cannot be adequately verified, mark it as unresolved.\n- Research only. Do not write the article.\n\nJSON OUTPUT RULES:\n\nReturn ONLY valid JSON using exactly this structure:\n\n{\n  \"research_summary\": \"string\",\n  \"verified_claims\": [\n    {\n      \"claim\": \"string\",\n      \"why_it_matters\": \"string\",\n      \"source_url\": \"string\"\n    }\n  ],\n  \"practical_workflows\": [\n    {\n      \"workflow\": \"string\",\n      \"use_case\": \"string\",\n      \"evidence_or_example\": \"string\",\n      \"source_url\": \"string\"\n    }\n  ],\n  \"recent_developments\": [\n    {\n      \"development\": \"string\",\n      \"date\": \"string or null\",\n      \"why_it_matters\": \"string\",\n      \"source_url\": \"string\"\n    }\n  ],\n  \"risks_and_limitations\": [\n    {\n      \"risk\": \"string\",\n      \"implication\": \"string\",\n      \"source_url\": \"string\"\n    }\n  ],\n  \"counterarguments\": [\n    {\n      \"argument\": \"string\",\n      \"assessment\": \"string\",\n      \"source_url\": \"string\"\n    }\n  ],\n  \"community_observations\": [\n    {\n      \"observation\": \"string\",\n      \"source_url\": \"string\"\n    }\n  ],\n  \"unresolved_claims\": [\n    {\n      \"claim\": \"string\",\n      \"reason_unresolved\": \"string\"\n    }\n  ],\n  \"recommended_article_evidence\": [\n    \"string\"\n  ]\n}\n\nRules:\n- Use exactly these top-level fields.\n- Do not add fields that are not shown above.\n- Do not create excerpt, quote, sources, metadata, findings, appendix, or other additional fields.\n- Do not include verbatim quotations from sources.\n- Paraphrase evidence in your own words.\n- Keep each field concise and focused.\n- Every factual claim that requires evidence must include its source URL in the corresponding source_url field.\n- Do not place raw line breaks, tabs, or other control characters inside string values.\n- Do not ask for a schema or clarification. The required schema is defined above.\n- Complete the research using the supplied research brief and return the JSON directly.\n- Ensure the final response can be parsed directly with JSON.parse().`\n      },\n      {\n        \"role\": \"user\",\n        \"content\": $json.research_brief\n      }\n    ],\n\n    \"tools\": [\n      {\n        \"type\": \"openrouter:web_search\",\n        \"parameters\": {\n          \"engine\": \"exa\",\n          \"max_results\": 8,\n          \"max_total_results\": 20,\n          \"search_context_size\": \"high\"\n        }\n      }\n    ],\n\n    \"max_tool_calls\": 6,\n    \"temperature\": 0.1,\n\n    \"response_format\": {\n      \"type\": \"json_schema\",\n      \"json_schema\": {\n        \"name\": \"deep_article_research\",\n        \"strict\": true,\n        \"schema\": {\n          \"type\": \"object\",\n          \"properties\": {\n\n            \"research_summary\": {\n              \"type\": \"string\"\n            },\n\n            \"verified_claims\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"claim\": {\"type\": \"string\"},\n                  \"why_it_matters\": {\"type\": \"string\"},\n                  \"source_url\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"claim\",\n                  \"why_it_matters\",\n                  \"source_url\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"practical_workflows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"workflow\": {\"type\": \"string\"},\n                  \"use_case\": {\"type\": \"string\"},\n                  \"evidence_or_example\": {\"type\": \"string\"},\n                  \"source_url\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"workflow\",\n                  \"use_case\",\n                  \"evidence_or_example\",\n                  \"source_url\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"recent_developments\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"development\": {\"type\": \"string\"},\n                  \"date\": {\"type\": [\"string\", \"null\"]},\n                  \"why_it_matters\": {\"type\": \"string\"},\n                  \"source_url\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"development\",\n                  \"date\",\n                  \"why_it_matters\",\n                  \"source_url\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"risks_and_limitations\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"risk\": {\"type\": \"string\"},\n                  \"implication\": {\"type\": \"string\"},\n                  \"source_url\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"risk\",\n                  \"implication\",\n                  \"source_url\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"counterarguments\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"argument\": {\"type\": \"string\"},\n                  \"assessment\": {\"type\": \"string\"},\n                  \"source_url\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"argument\",\n                  \"assessment\",\n                  \"source_url\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"community_observations\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"observation\": {\"type\": \"string\"},\n                  \"source_url\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"observation\",\n                  \"source_url\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"unresolved_claims\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"claim\": {\"type\": \"string\"},\n                  \"reason_unresolved\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"claim\",\n                  \"reason_unresolved\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n\n            \"recommended_article_evidence\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"string\"\n              }\n            }\n\n          },\n\n          \"required\": [\n            \"research_summary\",\n            \"verified_claims\",\n            \"practical_workflows\",\n            \"recent_developments\",\n            \"risks_and_limitations\",\n            \"counterarguments\",\n            \"community_observations\",\n            \"unresolved_claims\",\n            \"recommended_article_evidence\"\n          ],\n\n          \"additionalProperties\": false\n        }\n      }\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "2706835b-fe59-4e82-b535-9c69a296fa47",
+      "name": "OpenRouter - Deep Research"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json;\n\nconst raw = response.choices?.[0]?.message?.content;\n\nif (!raw) {\n  throw new Error('No Deep Research content found in OpenRouter response');\n}\n\nlet cleaned = raw\n  .trim()\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/```$/i, '')\n  .trim();\n\nlet research;\n\ntry {\n  research = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Could not parse Deep Research JSON: ${error.message}`\n  );\n}\n\nreturn {\n  json: {\n    research_summary: research.research_summary || \"\",\n    verified_claims: research.verified_claims || [],\n    practical_workflows: research.practical_workflows || [],\n    recent_developments: research.recent_developments || [],\n    risks_and_limitations: research.risks_and_limitations || [],\n    counterarguments: research.counterarguments || [],\n    community_observations: research.community_observations || [],\n    unresolved_claims: research.unresolved_claims || [],\n    recommended_article_evidence:\n      research.recommended_article_evidence || [],\n\n    research_meta: {\n      model: response.model || \"\",\n      total_tokens: response.usage?.total_tokens ?? null,\n      research_cost: response.usage?.cost ?? null,\n      web_search_requests:\n        response.usage?.server_tool_use_details?.web_search_requests ?? null\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "5dbc0b04-7e66-4b80-8c29-65954b1c58b7",
+      "name": "Parse Deep Research"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const research = $json;\n\n// Pull the approved strategy from the earlier node\nconst strategy = $('Prepare Deep Research Brief').item.json;\n\n// Safely parse fields that may contain JSON strings\nfunction parseIfJson(value, fallback = {}) {\n  if (value == null || value === \"\") return fallback;\n\n  if (typeof value !== \"string\") return value;\n\n  try {\n    return JSON.parse(value);\n  } catch {\n    return fallback;\n  }\n}\n\nconst audience = parseIfJson(strategy.article_audience);\nconst gap = parseIfJson(strategy.content_gap);\n\nconst contentObjective =\n  strategy[\"Content objective\"] ||\n  strategy.content_objective ||\n  \"\";\n\nconst searchIntent = String(\n  strategy.Intent ||\n  strategy.search_intent ||\n  \"\"\n).trim().toLowerCase();\n\nconst primaryKeyword =\n  strategy[\"Primary Keyword\"] ||\n  strategy.primary_keyword ||\n  \"\";\n\n// Define article structure based on search intent\nfunction getIntentGuardrail(intent) {\n  switch (intent) {\n    case \"informational\":\n      return `\nThis is an informational article.\n\nThe primary objective is to answer the reader's search query clearly and comprehensively.\n\nRecommended narrative:\n- Direct definition or answer\n- How the concept works\n- Main types or components\n- Concrete examples\n- Why it matters\n- Limitations or misconceptions\n- Practical implications\n\nAnswer the primary question early.\n\nDo not turn this article into a lengthy tutorial,\nimplementation guide, or product pitch.\n\nPractical workflows may be included when relevant,\nbut they should support the explanation rather than\ndominate the article.\n`.trim();\n\n    case \"how-to\":\n      return `\nThis is a how-to article.\n\nRecommended narrative:\n- Reader's problem and desired outcome\n- Prerequisites\n- Clear actionable steps\n- Practical examples\n- Common mistakes\n- Expected results\n\nPrioritize usefulness and clear instructions.\n\nAvoid lengthy theoretical explanations that do not\nhelp the reader complete the task.\n`.trim();\n\n    case \"comparison\":\n      return `\nThis is a comparison article.\n\nRecommended narrative:\n- What is being compared\n- Relevant comparison criteria\n- Key differences\n- Strengths and limitations\n- Use-case-specific recommendations\n- Decision guidance\n\nUse fair, evidence-based comparisons.\n\nAvoid turning the article into a generic tutorial\nor unsupported product promotion.\n`.trim();\n\n    case \"commercial investigation\":\n      return `\nThis is a commercial investigation article.\n\nRecommended narrative:\n- Reader needs and evaluation criteria\n- Available approaches or solutions\n- Relevant capabilities\n- Strengths and limitations\n- Tradeoffs\n- Decision guidance\n\nProduct claims must be supported by supplied\nproduct information or evidence.\n`.trim();\n\n    default:\n      return `\nDetermine the most appropriate article structure\nfrom the primary keyword and reader's likely intent.\n\nAnswer the main reader question early.\n\nUse a coherent narrative with minimal repetition.\n\nDo not force a tutorial or product-led structure\nunless it matches search intent.\n`.trim();\n  }\n}\n\nconst intentGuardrail = getIntentGuardrail(searchIntent);\n\n// Check for a potential mismatch between keyword and title.\n// This is a warning, not an automatic rewrite.\nconst recommendedTitle = strategy.recommend_title || \"\";\n\nconst informationalTitleMismatch =\n  searchIntent === \"informational\" &&\n  /^(how to|steps to|guide to|ways to)/i.test(\n    recommendedTitle.trim()\n  );\n\nreturn {\n  json: {\n    article_context: {\n      topic: strategy.Topic || \"\",\n      recommended_title: recommendedTitle,\n      primary_keyword: primaryKeyword,\n      search_intent: searchIntent,\n      content_objective: contentObjective,\n      product_relevance:\n        strategy[\"Product relevance\"] || \"\",\n      editorial_angle: strategy.Angle || \"\",\n\n      audience: audience || {},\n      content_gap: gap || {},\n\n      core_argument: strategy.core_argument || \"\",\n      unique_pov: strategy.unique_pov || \"\"\n    },\n\n    editorial_guardrails: {\n      strategy_is_authoritative: true,\n\n      search_intent_guardrail: intentGuardrail,\n\n      strategy_alignment_guardrail: `\nThe approved strategy determines the audience,\ncore argument, and editorial direction.\n\nHowever, search intent determines the appropriate\narticle format and information hierarchy.\n\nDo not allow a recommended title, content gap,\nor core argument to override the primary search intent.\n\nIf the approved strategy conflicts with search intent,\npreserve the useful strategic insights but organize\nthe article around the reader's primary question.\n\nDo not silently replace the approved strategy with\nan unrelated topic.\n`.trim(),\n\n      strategy_alignment_warning:\n        informationalTitleMismatch\n          ? `Potential mismatch: the primary keyword \"${primaryKeyword}\" has informational intent, but the approved title \"${recommendedTitle}\" suggests a how-to article. The outline must prioritize informational intent.`\n          : \"\",\n\n      research_role:\n        \"Use the research as an evidence pool. It may support, qualify, or challenge claims, but research-generated framing must not replace the approved article strategy.\",\n\n      audience_guardrail:\n        \"Keep the article focused on the approved article audience. Do not shift toward developers, ML engineers, or infrastructure teams merely because the research contains technical material.\",\n\n      technical_detail_guardrail:\n        \"Use technical implementation details only when they help explain a reader-facing concept. Do not organize the article around databases, embeddings, vector stores, graphs, retrieval infrastructure, or implementation architecture unless the topic and search intent genuinely require it.\",\n\n      objective_guardrail:\n        contentObjective === \"product_education\"\n          ? \"This article has a product-education objective, but search intent determines its structure. Educate readers first, then connect the topic naturally to AI Context Flow where relevant. Do not force a problem-workflow-product narrative onto informational or comparison queries. The article must remain useful without the product.\"\n          : \"Prioritize satisfying search intent comprehensively and credibly. Build category authority without forcing AI Context Flow into the argument or structure.\",\n\n      structure_guardrail:\n        \"Every section must introduce meaningful new information. Merge overlapping sections. Avoid repeating workflows, examples, or advice across multiple sections. Prefer a concise, coherent article over excessive length.\",\n\n      product_truth_guardrail:\n        \"AI Context Flow is a specific product, not a generic category. Open Context Layer is its broader positioning concept. Do not invent product capabilities. Specific feature claims must be supported by the supplied product or brand context. If capabilities are not established, describe the problem the product addresses without claiming unverified functionality.\"\n    },\n\n    research: {\n      research_summary:\n        research.research_summary || \"\",\n\n      verified_claims:\n        research.verified_claims || [],\n\n      practical_workflows:\n        research.practical_workflows || [],\n\n      recent_developments:\n        research.recent_developments || [],\n\n      risks_and_limitations:\n        research.risks_and_limitations || [],\n\n      counterarguments:\n        research.counterarguments || [],\n\n      community_observations:\n        research.community_observations || [],\n\n      unresolved_claims:\n        research.unresolved_claims || [],\n\n      recommended_article_evidence:\n        research.recommended_article_evidence || []\n    },\n\n    research_meta:\n      research.research_meta || {}\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "2070dc18-13e7-4b11-9e93-681efd82ef61",
+      "name": "Prepare outline"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"openai/gpt-5-mini\",\n\n    \"messages\": [\n      {\n        \"role\": \"system\",\n        \"content\": `You are a senior SEO content strategist and editorial architect for AI Context Flow.\n\nYour responsibility is to create a search-intent-driven, evidence-based article outline that a skilled writer can use to produce a clear, engaging, genuinely useful article.\n\nYou receive three inputs:\n1. APPROVED ARTICLE STRATEGY\n2. EDITORIAL GUARDRAILS\n3. DEEP RESEARCH\n\nThe approved strategy defines the audience, editorial direction, core argument, unique POV, and content objective.\n\nThe research provides supporting evidence, examples, and factual context.\n\nYour task is to create an outline that satisfies both the approved strategy and the reader's search intent.\n\nEDITORIAL PRIORITIES\n\nPrioritize:\n1. Search intent satisfaction\n2. Approved audience and editorial strategy\n3. Factual accuracy and product truth\n4. Logical structure and information density\n5. Natural product relevance\n6. SEO optimization\n\nThe approved strategy is authoritative for editorial direction, but it must not override the reader's primary search intent.\n\nDo not blindly reproduce a strategy that would result in an article answering a different question from the primary keyword.\n\nIf search intent and the approved strategy conflict, preserve the strategic direction where possible while ensuring the article answers the primary query.\n\nIf the conflict cannot be resolved without fundamentally changing the approved strategy, explicitly describe the conflict in narrative_arc and relevant writer_notes.\n\nDo not silently change the approved audience, core argument, or content objective.\n\nSEARCH INTENT FIRST\n\nBefore constructing the outline, identify:\n- The primary keyword.\n- The search intent.\n- The main question the reader wants answered.\n- The essential information needed to satisfy that question.\n- The most appropriate article format.\n\nFor informational keywords such as \"what is AI memory\":\n\nPrioritize:\n- A clear, direct definition.\n- How the concept works.\n- Its main types or components.\n- Concrete examples.\n- Why it matters.\n- Common limitations or misconceptions.\n- Practical applications.\n\nDo not turn an informational article into a lengthy step-by-step tutorial unless the approved strategy explicitly requires that direction and the article still substantially satisfies informational intent.\n\nFor how-to keywords:\n\nPrioritize:\n- The problem and desired outcome.\n- Prerequisites.\n- Clear actionable steps.\n- Practical examples.\n- Common mistakes.\n- Expected results.\n\nFor comparison keywords:\n\nPrioritize:\n- Comparison criteria.\n- Meaningful differences.\n- Tradeoffs.\n- Relevant use cases.\n- Decision guidance.\n\nFor commercial investigation keywords:\n\nPrioritize:\n- Evaluation criteria.\n- Available approaches.\n- Strengths and limitations.\n- Relevant product capabilities.\n- Decision guidance.\n\nChoose the article structure based on actual search intent, not merely the content objective.\n\nCONTENT OBJECTIVE\n\nIf content_objective is \"authority\":\n- Explain the topic comprehensively.\n- Establish credibility through evidence and clarity.\n- Prioritize educational value.\n- Introduce the product only when naturally relevant.\n\nIf content_objective is \"product_education\":\n- Explain the reader's problem and its underlying causes.\n- Teach the relevant concept or workflow.\n- Connect the topic naturally to AI Context Flow.\n- Preserve genuine educational value.\n- Do not force every article into a tutorial format.\n\nThe article must remain useful even if the reader does not adopt AI Context Flow.\n\nARTICLE STRUCTURE\n\nCreate a coherent narrative rather than a collection of loosely related SEO sections.\n\nEvery section must have a distinct purpose.\n\nBefore finalizing the outline, check:\n- Does the introduction address the searcher's question?\n- Does the article answer the main question early?\n- Does each section introduce meaningful new information?\n- Are any sections explaining essentially the same concept?\n- Can overlapping sections be merged?\n- Is the level of detail appropriate for the audience?\n- Are technical explanations necessary?\n- Does the conclusion reinforce the main takeaway?\n\nAvoid excessive section fragmentation.\n\nDo not create separate sections simply to accommodate every research finding.\n\nPrefer fewer, stronger sections over many repetitive ones.\n\nDo not repeat the same advice across the main explanation, practical workflow, examples, recommendations, and conclusion.\n\nEach section should move the reader's understanding forward.\n\nINFORMATION DENSITY\n\nPrioritize substance over article length.\n\nAvoid:\n- Generic introductions.\n- Repetitive explanations.\n- Unnecessary frameworks.\n- Excessive checklists.\n- Multiple examples demonstrating the same point.\n- Abstract statements without concrete meaning.\n- Technical digressions unrelated to search intent.\n\nDo not add sections merely to make the article longer.\n\nUse practical examples selectively.\n\nAUDIENCE\n\nWrite for the approved audience.\n\nFor AI Context Flow, the primary audience generally includes non-developer AI power users and knowledge workers.\n\nExamples may include freelancers, project managers, founders, and professionals working across multiple AI tools.\n\nDo not automatically assume marketers are the primary audience.\n\nDo not drift toward developers, ML engineers, or infrastructure teams unless explicitly required by the approved strategy.\n\nTECHNICAL DEPTH\n\nExplain technical concepts only when necessary.\n\nWhen introducing technical terminology:\n- Explain it in plain language.\n- Connect it to a real-world use case.\n- Avoid unnecessary implementation details.\n\nDo not structure the article around vector databases, embeddings, graphs, retrieval infrastructure, or memory architecture unless these topics are central to the approved strategy and search intent.\n\nPRODUCT IDENTITY\n\nAI Context Flow is a specific product.\n\nIt is not a generic industry category.\n\n\"Open Context Layer\" describes the broader product positioning and conceptual approach.\n\nAlways distinguish between:\n- AI Context Flow: the actual product.\n- Open Context Layer: the positioning concept.\n- General AI memory or context management techniques.\n\nDo not describe AI Context Flow as a category, generic solution type, or industry-wide label.\n\nPRODUCT POSITIONING\n\nProduct relevance should follow naturally from the reader's problem.\n\nWhen the article topic directly relates to portable AI context, cross-tool memory, or context fragmentation, AI Context Flow may be introduced naturally within the relevant explanatory section.\n\nDo not automatically postpone product introduction until the final section.\n\nHowever, do not force early product promotion.\n\nDetermine product placement based on:\n- Search intent.\n- Reader journey.\n- Approved content objective.\n- Relevance of the product to the section.\n\nThe article should educate first and promote second.\n\nPRODUCT TRUTH\n\nNever invent AI Context Flow capabilities.\n\nOnly describe specific product features, integrations, security properties, automation, or performance claims explicitly supported by the supplied product context.\n\nDo not infer capabilities from:\n- The article topic.\n- The research.\n- The product positioning.\n- The recommended workflow.\n- The Open Context Layer concept.\n\nIf a feature is not verified in the supplied input, do not present it as an existing product capability.\n\nYou may accurately describe the problem space AI Context Flow addresses without inventing features.\n\nAvoid unsupported claims about:\n- Automatic memory synchronization.\n- Privacy guarantees.\n- Encryption.\n- Retention policies.\n- Integration availability.\n- Performance improvements.\n- User adoption or business results.\n\nEVIDENCE\n\nUse the supplied deep research selectively.\n\nFor each section:\n- Include only relevant supporting evidence.\n- Attach source URLs from the supplied research.\n- Do not invent citations.\n- Do not imply external sources were independently verified.\n- Distinguish factual evidence from community observations.\n- Avoid unsupported numerical claims.\n\nDo not add a section simply because research exists about that topic.\n\nEDITORIAL STYLE\n\nDesign the outline for an article that sounds like a knowledgeable human explaining a topic.\n\nFavor:\n- Clear explanations.\n- Concrete examples.\n- Natural transitions.\n- Direct language.\n- Specific reader benefits.\n- Concise paragraphs.\n\nAvoid:\n- Generic AI-generated expressions.\n- Overly formal language.\n- Excessive jargon.\n- Repetitive sentence structures.\n- Unnecessary frameworks.\n- Artificially complex explanations.\n\nWRITER NOTES\n\nFor every section, provide actionable writer notes.\n\nSpecify:\n- What the section must accomplish.\n- Which information is essential.\n- What examples would help.\n- What should not be repeated.\n- Where technical explanations should be simplified.\n- How the section connects to the overall argument.\n\nDo not give generic instructions such as \"make this engaging\" without explaining how.\n\nFINAL OUTLINE VALIDATION\n\nBefore returning the outline, verify:\n\n1. The article's dominant purpose matches search intent.\n2. The working title accurately reflects the article.\n3. The article answers the primary query early.\n4. Every section has a distinct purpose.\n5. No major ideas are unnecessarily repeated.\n6. Technical depth matches the intended audience.\n7. AI Context Flow is correctly identified as a product.\n8. Product claims are supported by supplied context.\n9. Product placement feels natural.\n10. The outline supports a concise, readable article.\n\nReturn ONLY valid JSON matching the requested schema.`\n      },\n\n      {\n        \"role\": \"user\",\n        \"content\": `Create the article outline from the following approved strategy, guardrails, and research.\n\n${JSON.stringify($json, null, 2)}`\n      }\n    ],\n\n    \"temperature\": 0.2,\n\n    \"response_format\": {\n      \"type\": \"json_schema\",\n      \"json_schema\": {\n        \"name\": \"article_outline\",\n        \"strict\": true,\n        \"schema\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"working_title\": {\n              \"type\": \"string\"\n            },\n            \"article_thesis\": {\n              \"type\": \"string\"\n            },\n            \"reader_takeaway\": {\n              \"type\": \"string\"\n            },\n            \"narrative_arc\": {\n              \"type\": \"string\"\n            },\n            \"sections\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"heading\": {\n                    \"type\": \"string\"\n                  },\n                  \"purpose\": {\n                    \"type\": \"string\"\n                  },\n                  \"key_points\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"string\"\n                    }\n                  },\n                  \"evidence\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\",\n                      \"properties\": {\n                        \"claim_or_example\": {\n                          \"type\": \"string\"\n                        },\n                        \"source_url\": {\n                          \"type\": \"string\"\n                        }\n                      },\n                      \"required\": [\n                        \"claim_or_example\",\n                        \"source_url\"\n                      ],\n                      \"additionalProperties\": false\n                    }\n                  },\n                  \"writer_notes\": {\n                    \"type\": \"string\"\n                  }\n                },\n                \"required\": [\n                  \"heading\",\n                  \"purpose\",\n                  \"key_points\",\n                  \"evidence\",\n                  \"writer_notes\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n            \"product_connection\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"where_it_belongs\": {\n                  \"type\": \"string\"\n                },\n                \"role_in_article\": {\n                  \"type\": \"string\"\n                },\n                \"allowed_message\": {\n                  \"type\": \"string\"\n                },\n                \"avoid\": {\n                  \"type\": \"string\"\n                }\n              },\n              \"required\": [\n                \"where_it_belongs\",\n                \"role_in_article\",\n                \"allowed_message\",\n                \"avoid\"\n              ],\n              \"additionalProperties\": false\n            },\n            \"conclusion_direction\": {\n              \"type\": \"string\"\n            },\n            \"cta_direction\": {\n              \"type\": \"string\"\n            }\n          },\n          \"required\": [\n            \"working_title\",\n            \"article_thesis\",\n            \"reader_takeaway\",\n            \"narrative_arc\",\n            \"sections\",\n            \"product_connection\",\n            \"conclusion_direction\",\n            \"cta_direction\"\n          ],\n          \"additionalProperties\": false\n        }\n      }\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "9719b83a-26ef-4b62-ba6d-ea3c011d387d",
+      "name": "OpenRouter - Generate Outline"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json;\n\nconst raw = response.choices?.[0]?.message?.content;\n\nif (!raw) {\n  throw new Error('No outline content found in OpenRouter response');\n}\n\nlet cleaned = raw\n  .trim()\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/```$/i, '')\n  .trim();\n\nlet outline;\n\ntry {\n  outline = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Could not parse Outline JSON: ${error.message}`\n  );\n}\n\nreturn {\n  json: {\n    working_title: outline.working_title || \"\",\n    article_thesis: outline.article_thesis || \"\",\n    reader_takeaway: outline.reader_takeaway || \"\",\n    narrative_arc: outline.narrative_arc || \"\",\n    sections: outline.sections || [],\n    product_connection: outline.product_connection || {},\n    conclusion_direction: outline.conclusion_direction || \"\",\n    cta_direction: outline.cta_direction || \"\",\n\n    outline_meta: {\n      model: response.model || \"\",\n      total_tokens: response.usage?.total_tokens ?? null,\n      outline_cost: response.usage?.cost ?? null\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        0
+      ],
+      "id": "ebf487f4-5083-4678-8873-8a280f344e54",
+      "name": "Parse outline"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const outline = $json;\n\n// Original approved strategy/context\nconst strategy = $('Prepare Deep Research Brief').item.json;\n\nconst audience =\n  typeof strategy.article_audience === 'string'\n    ? JSON.parse(strategy.article_audience)\n    : strategy.article_audience;\n\nconst contentObjective =\n  strategy['Content objective'] ||\n  strategy.content_objective ||\n  \"\";\n\nreturn {\n  json: {\n    article_strategy: {\n      topic: strategy.Topic || \"\",\n      primary_keyword: strategy['Primary Keyword'] || \"\",\n      search_intent: strategy.Intent || \"\",\n      content_objective: contentObjective,\n      product_relevance: strategy['Product relevance'] || \"\",\n      editorial_angle: strategy.Angle || \"\",\n      audience: audience || {},\n      core_argument: strategy.core_argument || \"\",\n      unique_pov: strategy.unique_pov || \"\"\n    },\n\n    outline: {\n      working_title: outline.working_title || \"\",\n      article_thesis: outline.article_thesis || \"\",\n      reader_takeaway: outline.reader_takeaway || \"\",\n      narrative_arc: outline.narrative_arc || \"\",\n      sections: outline.sections || [],\n      product_connection: outline.product_connection || {},\n      conclusion_direction: outline.conclusion_direction || \"\",\n      cta_direction: outline.cta_direction || \"\"\n    },\n\n    writer_guardrails: {\n  search_intent:\n    \"Search intent is the highest editorial priority. For informational queries, answer the primary question directly in the opening paragraphs. Explain the concept, how it works, its main types, examples, benefits, and limitations before discussing advanced applications. Do not turn an informational article into a tutorial, comparison, or product pitch.\",\n\n  outline:\n    \"Use the approved outline as the structural foundation, but apply editorial judgment to improve clarity and avoid repetition. Preserve its core argument, evidence, and useful insights. You may merge overlapping sections, shorten unnecessary explanations, or integrate minor sections into more relevant ones. Do not introduce unrelated topics.\",\n\n  memory_taxonomy:\n    \"When explaining AI memory types, distinguish between different classification dimensions. Short-term versus long-term describes how long context is retained. Semantic, episodic, and procedural describe what kind of information is remembered. These categories can overlap. Do not incorrectly present limited/session, episodic, and persistent memory as three mutually exclusive technical categories.\",\n\n  information_hierarchy:\n    \"Prioritize the reader's primary information need. For an article targeting 'what is ai memory', spend most of the article explaining AI memory itself. Memory portability should provide a distinctive perspective, not dominate the article. Keep practical portability recommendations concise and relevant.\",\n\n  section_structure:\n    \"Every section must introduce meaningful new information. Merge overlapping sections when appropriate. Avoid repeating explanations, workflows, examples, or recommendations. Prefer a concise, coherent article over unnecessary length.\",\n\n  evidence:\n    \"Use only evidence supplied in the outline for factual claims requiring external support. Do not invent sources, statistics, studies, product capabilities, or research findings. Treat cited research as material requiring accurate attribution, not as automatic proof that every claim is verified.\",\n\n  audience:\n    \"Write for the approved non-developer audience. Explain technical concepts in accessible, reader-facing language. Avoid unnecessary implementation details, developer tutorials, and infrastructure discussions.\",\n\n  product_truth:\n    \"AI Context Flow is a specific product positioned around an Open Context Layer. Do not infer product capabilities from the workflow, research, category, or article argument. Only make product claims explicitly established in the supplied input.\",\n\n  product_integration:\n    \"For informational articles, do not create a standalone promotional H2 section about AI Context Flow. Instead, integrate a brief, natural product reference near the end where it genuinely supports the reader's understanding. Keep the article useful without the product. Use a relevant, low-pressure CTA.\",\n\n  heuristics:\n    \"Clearly distinguish practical examples and editorial heuristics from evidence-backed claims. Do not present example numbers, time periods, thresholds, or rules of thumb as established research findings.\",\n\n  usefulness:\n    \"The article must provide standalone value even if the reader never uses AI Context Flow.\"\n}\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        400
+      ],
+      "id": "a314a6be-f5e5-412b-a956-604d6ca8d4f8",
+      "name": "Prepare Article Writer"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json;\n\nconst raw = response.choices?.[0]?.message?.content;\n\nif (!raw) {\n  throw new Error('No article content found in OpenRouter response');\n}\n\n// Remove Markdown fences if present\nconst cleaned = raw\n  .trim()\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/```$/i, '')\n  .trim();\n\nlet article;\n\ntry {\n  article = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Could not parse Article Draft JSON: ${error.message}`\n  );\n}\n\n// Validate required fields\nif (!article.title || !article.article_markdown) {\n  throw new Error(\n    'Article Draft is missing title or article_markdown'\n  );\n}\n\nconst markdown = article.article_markdown;\n\nconst wordCount = markdown\n  .trim()\n  .split(/\\s+/)\n  .filter(Boolean)\n  .length;\n\nreturn {\n  json: {\n    title: article.title,\n    meta_description: article.meta_description || \"\",\n    article_markdown: markdown,\n    sources_used: article.sources_used || [],\n\n    article_metrics: {\n      word_count: wordCount,\n      source_count: (article.sources_used || []).length,\n      heading_count:\n        (markdown.match(/^#{1,6}\\s/gm) || []).length\n    },\n\n    writer_meta: {\n      model: response.model || \"\",\n      total_tokens: response.usage?.total_tokens ?? null,\n      writing_cost: response.usage?.cost ?? null\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        400
+      ],
+      "id": "ded9d9c8-dae5-4242-90b3-0451c784b914",
+      "name": "Parse Article Draft"
+    },
+    {
+      "parameters": {
+        "jsCode": "const article = $json;\n\n// Original approved strategy\nconst prepared = $('Prepare Article Writer').item.json;\n\nconst strategy = prepared.article_strategy;\nconst outline = prepared.outline;\nconst guardrails = prepared.writer_guardrails;\n\nreturn {\n  json: {\n    article_strategy: strategy,\n\n    approved_outline: {\n      working_title: outline.working_title,\n      article_thesis: outline.article_thesis,\n      reader_takeaway: outline.reader_takeaway,\n      narrative_arc: outline.narrative_arc,\n      sections: outline.sections.map(section => ({\n        heading: section.heading,\n        purpose: section.purpose,\n        key_points: section.key_points,\n        evidence: section.evidence\n      })),\n      product_connection: outline.product_connection\n    },\n\n    article_draft: {\n      title: article.title,\n      meta_description: article.meta_description,\n      article_markdown: article.article_markdown,\n      sources_used: article.sources_used,\n      metrics: article.article_metrics\n    },\n\n    editorial_guardrails: guardrails,\n\n    qa_objectives: {\n      search_intent_alignment:\n        \"Determine whether the article genuinely satisfies the original primary keyword and search intent. Detect when the article has drifted toward a different search query or article type.\",\n\n      strategy_fidelity:\n        \"Check whether the article preserves the approved audience, core argument, unique POV, content objective, and editorial angle.\",\n\n      factual_support:\n        \"Identify unsupported, exaggerated, misleading, or overly certain factual claims. Distinguish source-backed claims from practical recommendations.\",\n\n      source_integrity:\n        \"Check whether citations use only approved source URLs and whether each cited source is relevant to the claim. Flag claims that require independent verification. Do not assume a URL proves a claim merely because it appears in the approved outline.\",\n\n      product_truth:\n        \"Flag invented or unverified AI Context Flow capabilities, integrations, technical behavior, security guarantees, or performance claims.\",\n\n      audience_fit:\n        \"Check that the article remains useful and understandable for non-developer AI power users.\",\n\n      practical_value:\n        \"Evaluate whether templates, examples, checklists, and recommendations are actionable, internally consistent, and genuinely useful.\",\n\n      editorial_quality:\n        \"Identify repetition, generic AI prose, awkward keyword insertion, unnecessary technical detail, and weak narrative transitions.\",\n\n      publication_readiness:\n        \"Identify issues that must be resolved before human approval and WordPress publication.\"\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        400
+      ],
+      "id": "d9cbe4e3-4cb7-4ecd-9093-667b172f78b3",
+      "name": "Prepare Editorial QA"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"openai/gpt-5-mini\",\n\n    \"messages\": [\n      {\n        \"role\": \"system\",\n        \"content\": `You are a senior editorial QA reviewer for AI Context Flow.\n\nYour responsibility is to critically evaluate a completed article against its approved strategy, outline, evidence, and editorial guardrails.\n\nYou are NOT the article writer.\n\nDo not rewrite the article.\n\nEvaluate whether it is accurate, useful, strategically aligned, and ready for publication.\n\nREVIEW PRINCIPLES\n\n1. Be critical but proportionate.\n2. Do not reward keyword stuffing.\n3. Distinguish actual problems from stylistic preferences.\n4. Do not invent factual errors.\n5. Do not assume an approved outline is automatically correct.\n6. Do not assume a citation proves a claim simply because its URL was supplied.\n7. Do not claim to have independently verified external sources.\n8. Recommend changes that materially improve the article.\n\nEVALUATION CATEGORIES\n\nScore each category from 1 to 5:\n\n1. search_intent_alignment\nDoes the article satisfy the primary keyword and search intent?\nIdentify drift toward a different topic or article type.\n\n2. strategy_fidelity\nDoes the article preserve the approved audience, argument, unique POV, content objective, and editorial angle?\n\n3. factual_support\nAre claims appropriately qualified and supported?\nIdentify unsupported statistics, exaggerated conclusions, and invented factual assertions.\n\n4. source_integrity\nAre citations drawn from approved sources?\nAre sources relevant to the associated claims?\nFlag claims that require independent source verification.\n\n5. product_truth\nDoes the article avoid inventing AI Context Flow features, integrations, technical capabilities, security guarantees, or results?\n\n6. audience_fit\nIs the article accessible and relevant to non-developer AI power users?\n\n7. practical_value\nAre the templates, examples, frameworks, and recommendations useful and actionable?\n\n8. editorial_quality\nIs the writing coherent, specific, engaging, and free from unnecessary repetition or generic AI prose?\n\n9. publication_readiness\nDoes the draft meet the standard for human editorial approval?\n\nSEVERITY LEVELS\n\ncritical:\nA major factual, legal, privacy, or product-truth problem that must be resolved before publication.\n\nmajor:\nA substantial issue with search intent, argument, evidence, usefulness, or structure.\n\nminor:\nA localized editorial problem that should be improved but does not undermine the article.\n\nISSUE REQUIREMENTS\n\nFor every issue:\n- identify the category\n- assign severity\n- quote a short exact excerpt from the article\n- explain the problem\n- provide a specific revision instruction\n\nDo not create artificial issues merely to fill the report.\n\nREVISION BRIEF REQUIREMENTS\n\nWhen decision is revise:\n\nProvide a prioritized revision brief that an AI writer\ncan execute without additional interpretation.\n\nInclude:\n1. What must change in the article structure.\n2. Which sections should be expanded, merged, or removed.\n3. How to improve search intent satisfaction.\n4. How to improve product positioning.\n5. How to make the writing more natural and concise.\n6. What must remain unchanged, including supported facts,\n   approved sources, and product-truth constraints.\n\nPrioritize major issues over minor stylistic improvements.\n\nDo not recommend rewriting sections that already work well.\n\nWhen decision is human_review:\nClearly identify the decision that requires human input.\nDo not silently resolve the strategic conflict.\n\nSEARCH INTENT VS APPROVED STRATEGY\n\nPay special attention when the approved strategy itself has drifted away from the original search intent.\n\nFor example:\nAn informational keyword seeking a definition may have become a workflow tutorial.\n\nIdentify whether the issue originated in the strategy or the writing.\n\nDo not automatically instruct the writer to reverse an explicitly approved editorial direction.\n\nIf the conflict requires an editorial decision, mark it as requiring human review.\n\nMANDATORY SEARCH INTENT CHECK\n\nEvaluate the original primary keyword and search intent\nindependently of the approved outline.\n\nAn article that briefly answers an informational query\nbut primarily delivers a how-to tutorial does not\nautomatically deserve a high search-intent score.\n\nDistinguish between:\n- The searcher's primary question\n- The article's dominant purpose\n- The approved editorial strategy\n\nIf these conflict materially:\n- Score search_intent_alignment no higher than 3.\n- Explain the conflict.\n- Set decision to human_review.\n- Do not resolve the conflict by keyword stuffing.\n\nEVIDENCE LIMITATION\n\nYou are reviewing the supplied article and evidence metadata.\n\nYou have not independently retrieved the external sources.\n\nYou may check whether URLs match the approved evidence pool and assess whether claims appear appropriately qualified.\n\nYou must not report source content as independently verified.\n\nPRODUCT EDUCATION\n\nFor product_education articles:\n- evaluate whether the article teaches a relevant problem and workflow\n- assess whether product relevance follows naturally\n- do not demand promotional copy or artificial CTAs\n\nEDITORIAL QUALITY GATES\n\nEvaluate the article as an experienced human editor would,\nnot merely as a compliance checker.\n\nAn article can follow its approved outline and still be\npoorly structured, unengaging, or strategically ineffective.\n\nApply the following quality gates independently.\n\nGATE 1 — SEARCH INTENT SATISFACTION\n\nIdentify:\n- The primary question behind the target keyword.\n- The answer a reader expects.\n- The dominant purpose of the article.\n- Whether the article delivers the expected answer\n  clearly and sufficiently.\n\nDo not award a high score simply because the keyword\nappears in the introduction or headings.\n\nIf an informational article primarily becomes a tutorial\nwithout sufficiently explaining the core concept,\nscore search_intent_alignment no higher than 3.\n\nGATE 2 — STRUCTURE AND INFORMATION DENSITY\n\nEvaluate whether:\n- The introduction establishes a clear reader problem.\n- The article follows a logical progression.\n- Each major section adds meaningful new information.\n- Sections repeat the same ideas unnecessarily.\n- The conclusion provides a useful takeaway.\n- The article could be substantially shorter without\n  losing important information.\n\nFlag unnecessary repetition, excessive sections,\nand weak information hierarchy as major issues when\nthey materially reduce readability.\n\nGATE 3 — NATURAL HUMAN WRITING\n\nEvaluate whether the article sounds like it was written\nby a knowledgeable human explaining a topic to another person.\n\nLook for:\n- Generic or formulaic AI-generated expressions.\n- Abstract statements that convey little useful meaning.\n- Excessive jargon.\n- Repetitive sentence structures.\n- Unnecessary explanatory phrases.\n- Awkward transitions between sections.\n- Overly formal or mechanical language.\n- Excessive bullet lists where prose would be more natural.\n\nDo not confuse grammatical correctness with editorial quality.\n\nIf the article is coherent but consistently robotic,\nscore editorial_quality no higher than 3.\n\nGATE 4 — PRODUCT POSITIONING\n\nAI Context Flow is a specific product, not a generic\ncategory or industry term.\n\nEvaluate whether the article:\n- Establishes a problem relevant to AI Context Flow.\n- Naturally connects the problem to the product.\n- Explains why the product is relevant to the reader.\n- Avoids introducing the product as an unrelated\n  promotional paragraph near the conclusion.\n- Avoids invented product capabilities or benefits.\n\nDo not require aggressive promotion or keyword stuffing.\n\nFor product-relevant articles, weak or disconnected\nproduct positioning should reduce strategy_fidelity.\n\nGATE 5 — READER VALUE\n\nAsk:\n- What will the reader understand after reading?\n- What can the reader actually do differently?\n- Is the information sufficiently specific?\n- Are examples concrete and relevant?\n- Does the article provide insight beyond generic advice?\n\nA long article is not necessarily a useful article.\n\nFlag sections that consume substantial space without\nadding meaningful reader value.\n\nSCORING\n\nScores use integers from 1 to 5.\n\n5 = excellent\n4 = good, minor improvements\n3 = acceptable but meaningful revision needed\n2 = substantial problems\n1 = fundamentally inadequate\n\nDo not calculate an overall score by averaging categories.\n\nPUBLICATION DECISION\n\nReturn one of:\n\npass:\nThe article is ready for human editorial approval.\n\nRequirements:\n- No critical or major issues remain.\n- All scores are at least 4.\n- Search intent is clearly satisfied.\n- The article is well structured and readable.\n- The writing is natural and sufficiently specific.\n- Product positioning is appropriate to the strategy.\n\nrevise:\nThe article contains material problems that can be\nresolved without changing the approved editorial strategy.\n\nChoose revise when:\n- Any category scores 3 or below due to a fixable issue.\n- The article contains major structural weaknesses.\n- Writing is consistently robotic or repetitive.\n- Product positioning is weak but can be improved\n  within the approved strategy.\n- The article lacks sufficient practical value.\n\nhuman_review:\nA material editorial or strategic decision requires\nhuman judgment before revision.\n\nChoose human_review when:\n- The original search intent materially conflicts\n  with the approved editorial strategy.\n- Fixing the article would require changing its\n  primary purpose or target audience.\n- Important factual or product claims cannot be\n  confidently resolved from supplied information.\n- There are competing editorial directions and\n  no clear basis for choosing between them.\n\nDECISION CONSISTENCY\n\n- If any critical issue exists, decision cannot be pass.\n- If any major issue exists, decision cannot be pass.\n- If any score is 3 or below, decision cannot be pass.\n- Do not assign scores of 4 or 5 to categories with\n  unresolved major weaknesses.\n- Do not inflate scores to justify a pass decision.\n- A pass decision must be supported by the actual\n  quality of the article, not merely its compliance\n  with the approved outline.\n\nThe publication decision is a recommendation,\nnot authorization to publish.\n\nOUTPUT\n\nReturn valid JSON only.\n\nUse the required response schema.\n\nDo not include Markdown fences.`\n      },\n\n      {\n        \"role\": \"user\",\n        \"content\": `Review this article against its approved strategy and outline.\n\n${JSON.stringify($json, null, 2)}`\n      }\n    ],\n\n    \"temperature\": 0.1,\n\n    \"response_format\": {\n      \"type\": \"json_schema\",\n      \"json_schema\": {\n        \"name\": \"editorial_qa\",\n        \"strict\": true,\n        \"schema\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"decision\": {\n              \"type\": \"string\",\n              \"enum\": [\"pass\", \"revise\", \"human_review\"]\n            },\n            \"summary\": {\n              \"type\": \"string\"\n            },\n            \"scores\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"search_intent_alignment\": {\"type\": \"integer\"},\n                \"strategy_fidelity\": {\"type\": \"integer\"},\n                \"factual_support\": {\"type\": \"integer\"},\n                \"source_integrity\": {\"type\": \"integer\"},\n                \"product_truth\": {\"type\": \"integer\"},\n                \"audience_fit\": {\"type\": \"integer\"},\n                \"practical_value\": {\"type\": \"integer\"},\n                \"editorial_quality\": {\"type\": \"integer\"},\n                \"publication_readiness\": {\"type\": \"integer\"}\n              },\n              \"required\": [\n                \"search_intent_alignment\",\n                \"strategy_fidelity\",\n                \"factual_support\",\n                \"source_integrity\",\n                \"product_truth\",\n                \"audience_fit\",\n                \"practical_value\",\n                \"editorial_quality\",\n                \"publication_readiness\"\n              ],\n              \"additionalProperties\": false\n            },\n            \"issues\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"category\": {\"type\": \"string\"},\n                  \"severity\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"critical\", \"major\", \"minor\"]\n                  },\n                  \"excerpt\": {\"type\": \"string\"},\n                  \"problem\": {\"type\": \"string\"},\n                  \"revision_instruction\": {\"type\": \"string\"}\n                },\n                \"required\": [\n                  \"category\",\n                  \"severity\",\n                  \"excerpt\",\n                  \"problem\",\n                  \"revision_instruction\"\n                ],\n                \"additionalProperties\": false\n              }\n            },\n            \"human_review_questions\": {\n              \"type\": \"array\",\n              \"items\": {\"type\": \"string\"}\n            },\n            \"revision_brief\": {\n              \"type\": \"string\"\n            }\n          },\n          \"required\": [\n            \"decision\",\n            \"summary\",\n            \"scores\",\n            \"issues\",\n            \"human_review_questions\",\n            \"revision_brief\"\n          ],\n          \"additionalProperties\": false\n        }\n      }\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        400
+      ],
+      "id": "d3d9da76-8c6e-467c-8db8-6c04b7126087",
+      "name": "OpenRouter - Editorial QA"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json;\n\nconst raw = response.choices?.[0]?.message?.content;\n\nif (!raw) {\n  throw new Error('No Editorial QA content found');\n}\n\nconst cleaned = raw\n  .trim()\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/```$/i, '')\n  .trim();\n\nlet qa;\n\ntry {\n  qa = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(`Editorial QA JSON parsing failed: ${error.message}`);\n}\n\nif (!['pass', 'revise', 'human_review'].includes(qa.decision)) {\n  throw new Error(`Invalid QA decision: ${qa.decision}`);\n}\n\n// Keep the original article available for revision.\nconst prepared = $('Prepare Editorial QA').item.json;\n\nreturn {\n  json: {\n    decision: qa.decision,\n    summary: qa.summary || '',\n    scores: qa.scores || {},\n    issues: qa.issues || [],\n    human_review_questions: qa.human_review_questions || [],\n    revision_brief: qa.revision_brief || '',\n\n    article_strategy: prepared.article_strategy,\n    approved_outline: prepared.approved_outline,\n    article_draft: prepared.article_draft,\n\n    qa_meta: {\n      model: response.model || '',\n      total_tokens: response.usage?.total_tokens ?? null,\n      qa_cost: response.usage?.cost ?? null\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        400
+      ],
+      "id": "71420800-9acd-429d-8088-f299cdd0dfed",
+      "name": "Parse Editorial QA"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f246a554-74da-4602-9e3e-2d5b1a2a3ea1",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "revise",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1104,
+        400
+      ],
+      "id": "ec75e157-c369-40aa-9570-f3dba897fb27",
+      "name": "Needs Article Revision?"
+    },
+    {
+      "parameters": {
+        "folderId": "",
+        "title": "={{ $json.article_draft.title }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        1072
+      ],
+      "id": "b770acd6-6433-4261-8c4f-9b02076e2e52",
+      "name": "Create Article Review Doc"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $('Parse Editorial QA').item.json.article_draft.article_markdown }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        192,
+        1072
+      ],
+      "id": "b5aecae7-f41d-41a1-bea4-e4e3c955c8c1",
+      "name": "Insert Article Content"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "primary_keyword": "={{ $('Parse Editorial QA').first().json.article_strategy.primary_keyword }}",
+            "article_title": "={{ $('Parse Editorial QA').first().json.article_draft.title }}",
+            "Google_doc": "={{ 'https://docs.google.com/document/d/' + $('Create Article Review Doc').first().json.documentId + '/edit' }}",
+            "qa_decision": "={{ $('Parse Editorial QA').first().json.decision }}",
+            "qa_issues": "={{ JSON.stringify($('Parse Editorial QA').first().json.issues) }}",
+            "approval": "Pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "primary_keyword",
+              "displayName": "primary_keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "article_title",
+              "displayName": "article_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Google_doc",
+              "displayName": "Google_doc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qa_decision",
+              "displayName": "qa_decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qa_issues",
+              "displayName": "qa_issues",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval",
+              "displayName": "approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "human_feedback",
+              "displayName": "human_feedback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        400,
+        1072
+      ],
+      "id": "76338477-5816-4a36-ae32-7bb4b4662538",
+      "name": "Submit for Human Approval #2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"deepseek/deepseek-v4.1-flash\",\n\n    \"messages\": [\n      {\n        \"role\": \"system\",\n        \"content\": `You are a senior editorial writer for AI Context Flow.\n\nYou write useful, evidence-based articles for AI power users and knowledge workers.\n\nYour job is to turn the supplied approved strategy and outline into a polished article.\n\nEDITORIAL HIERARCHY\n\nFollow this priority order:\n\n1. Approved article strategy\n2. Approved outline\n3. Evidence attached to each outline section\n4. Writer guardrails\n\nDo not redesign the article around research tangents.\n\nSEARCH INTENT AND SEO\n\nThe article must genuinely satisfy the supplied search intent.\n\nUse the primary keyword naturally:\n- establish the topic clearly near the beginning\n- use it or a natural variation where editorially appropriate\n- do not keyword-stuff\n- do not create awkward headings solely for SEO\n\nThe article title should remain close to the approved working title unless a small change materially improves clarity.\n\nWRITING STYLE\n\nWrite for intelligent non-developer AI power users.\n\nThe tone should be:\n- practical\n- insightful\n- technically credible\n- clear\n- specific\n- conversational without being casual\n- confident without hype\n\nAvoid generic AI-marketing language such as:\n- \"in today's fast-paced AI landscape\"\n- \"game-changing\"\n- \"revolutionary\"\n- \"unlock the power of\"\n- \"seamlessly\"\n- \"transform the way you work\"\n\nAvoid unnecessary throat-clearing.\n\nDo not repeatedly restate the same argument.\n\nPrefer concrete examples, decisions, workflows, and trade-offs over abstract explanation.\n\nARTICLE STRUCTURE\n\nFollow the outline's narrative progression and section purposes.\n\nYou may:\n- slightly improve heading wording\n- combine repetitive points within a section\n- create useful H3 subheadings\n- use short lists, tables, templates, or checklists where they genuinely improve comprehension\n\nYou may NOT:\n- introduce major new sections unrelated to the outline\n- remove an important part of the approved argument\n- turn the article into a technical infrastructure tutorial\n\nThe article should feel like one coherent argument, not eleven disconnected SEO sections.\n\nEVIDENCE AND CITATIONS\n\nUse only evidence supplied in the outline for factual claims that require external support.\n\nNever invent:\n- sources\n- URLs\n- research findings\n- statistics\n- quotations\n- benchmarks\n\nWhen a factual claim relies on supplied evidence, cite the relevant source using Markdown link syntax with a descriptive source name or natural anchor text.\n\nExample:\nResearch on long-term AI memory distinguishes several dimensions of persistence and representation ([source](https://example.com)).\n\nDo not attach citations to every sentence.\nCite where evidence materially supports the argument.\n\nCommunity or practitioner sources may illustrate user experiences or workflows, but do not present them as authoritative scientific evidence.\n\nDo not fabricate quotations from any source.\n\nHEURISTICS VS FACTS\n\nThe outline contains some practical rules of thumb.\n\nTreat numbers such as:\n- retention periods\n- time budgets\n- word counts\n- thresholds\n- \"yes to 2+ questions\"\nas editorial examples unless the supplied evidence explicitly establishes them.\n\nUse language such as:\n- \"for example\"\n- \"a reasonable starting point\"\n- \"you might\"\n- \"one simple rule could be\"\n\nDo not imply that these numbers are scientifically established.\n\nPRODUCT TRUTH\n\nDo not infer AI Context Flow capabilities from:\n- the article workflow\n- the research\n- category expectations\n- Open Context Layer concepts\n\nOnly make a specific product claim if that capability is explicitly established in the supplied input.\n\nOtherwise keep AI Context Flow references at the positioning/problem-space level.\n\nSafe examples:\n- \"AI Context Flow is positioned around portable AI context.\"\n- \"This is the problem space AI Context Flow addresses.\"\n- \"An Open Context Layer aims to reduce context fragmentation across AI workflows.\"\n\nDo not claim that AI Context Flow automatically:\n- retrieves memories\n- injects context\n- manages retention\n- applies consent policies\n- synchronizes data\n- performs ADD/UPDATE/DELETE operations\nunless explicitly established in the supplied input.\n\nThe article must remain useful even if the reader never uses AI Context Flow.\n\nPRODUCT EDUCATION\n\nIf content_objective is \"product_education\", do not turn the article into a product pitch.\n\nInstead create this progression:\n\nproblem\n→ current behavior/workaround\n→ limitation\n→ better mental model/workflow\n→ natural category/product relevance\n\nProduct relevance should feel like the consequence of understanding the problem.\n\nTEMPLATES AND EXAMPLES\n\nWhen the outline requests templates, examples, checklists, or workflows, actually provide them.\n\nMake them copyable and practical.\n\nClearly distinguish invented illustrative examples from externally verified facts.\n\nTECHNICAL DEPTH\n\nExplain technical concepts only as far as necessary for the reader to make a decision.\n\nEmbeddings, graphs, RAG, vector search, agentic memory, or infrastructure should not dominate the article.\n\nWhen technical concepts appear:\n1. explain what problem they solve\n2. explain when the reader might need them\n3. avoid unnecessary implementation detail\n\nFINAL QUALITY CHECK\n\nBefore returning the article, silently check:\n\n- Does it answer the search intent?\n- Does it preserve the approved POV?\n- Is it useful to the approved audience?\n- Are factual claims supported by supplied evidence?\n- Are heuristics clearly framed as examples?\n- Are product claims restricted to supplied truth?\n- Is there unnecessary repetition?\n- Does each section advance the argument?\n- Are the templates genuinely usable?\n- Does the article sound written for humans rather than generated for SEO?\n\nOUTPUT\n\nReturn valid JSON only.\n\nUse exactly this structure:\n\n{\n  \"title\": \"...\",\n  \"meta_description\": \"...\",\n  \"article_markdown\": \"...\",\n  \"sources_used\": [\n    {\n      \"source_url\": \"...\",\n      \"used_for\": \"...\"\n    }\n  ]\n}\n\nDo not return Markdown fences around the JSON.\nDo not add fields outside this structure.`\n      },\n\n      {\n        \"role\": \"user\",\n        \"content\": `Write the complete article using the following approved strategy, outline, evidence, and guardrails.\n\n${JSON.stringify($json, null, 2)}`\n      }\n    ],\n\n    \"temperature\": 0.3,\n\n    \"response_format\": {\n      \"type\": \"json_schema\",\n      \"json_schema\": {\n        \"name\": \"article_draft\",\n        \"strict\": true,\n        \"schema\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"title\": {\n              \"type\": \"string\"\n            },\n            \"meta_description\": {\n              \"type\": \"string\"\n            },\n            \"article_markdown\": {\n              \"type\": \"string\"\n            },\n            \"sources_used\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"source_url\": {\n                    \"type\": \"string\"\n                  },\n                  \"used_for\": {\n                    \"type\": \"string\"\n                  }\n                },\n                \"required\": [\n                  \"source_url\",\n                  \"used_for\"\n                ],\n                \"additionalProperties\": false\n              }\n            }\n          },\n          \"required\": [\n            \"title\",\n            \"meta_description\",\n            \"article_markdown\",\n            \"sources_used\"\n          ],\n          \"additionalProperties\": false\n        }\n      }\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        48,
+        608
+      ],
+      "id": "2ca1b030-d3cd-4af9-a02e-204091d61c39",
+      "name": "OpenRouter - Article Writer1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/write-article",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        48,
+        400
+      ],
+      "id": "195fc440-b6c3-4947-befa-c32e0414ecbc",
+      "name": "Claude Subscription - Article Writer"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://app.plurality.network/mcp",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "value": "save_memory",
+          "mode": "list",
+          "cachedResultName": "save_memory"
+        },
+        "inputMode": "json",
+        "jsonInput": "={{ $json.plurality_review }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        1776,
+        592
+      ],
+      "id": "1756dc04-4406-41e9-affe-f103fb527c30",
+      "name": "Save Article to AI Context Flow"
+    },
+    {
+      "parameters": {
+        "content": "# AI Context Flow — Content Production\n**Color key:** gold intake · blue research/save · purple outline · green writing · yellow QA · red revision · gray disconnected. Follow the arrows from the top row to writing, QA, then pending-review memory.\n**Active destination:** the save node uses Plurality MCP and a bucket ID inside **Prepare Plurality Review Package**. Imported copies must configure their own credential and bucket.\n**Current limits:** the revision branch ends after its model call; Docs review and branded HTML formatter are disconnected. No WordPress draft or publish step is connected. The formatter needs an exact-version human approval input before use.",
+        "height": 180,
+        "width": 2050,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -80,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "dd996133-3a00-4816-b113-63c921ac1160",
+      "name": "Workflow guide"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\nJSON.stringify({\n  model: \"openai/gpt-5-mini\",\n  temperature: 0.2,\n  messages: [\n    {\n      role: \"system\",\n      content: `You are a senior editorial revision specialist.\n\nRevise an existing article according to its editorial QA feedback.\n\nRules:\n- Preserve the original article's factual claims, citations, and approved strategy.\n- Resolve every major issue in the revision brief.\n- Remove repetition and improve readability.\n- Do not invent sources or product capabilities.\n- Preserve the informational search intent.\n- Keep AI Context Flow references neutral and accurate.\n- Target 1200–1600 words for this article.\n- Return valid JSON only, with:\n  title, meta_description, article_markdown, revision_summary.`\n    },\n    {\n      role: \"user\",\n      content: JSON.stringify({\n        original_article: $json.article_draft,\n        revision_brief: $json.revision_brief,\n        issues: $json.issues,\n        article_strategy: $json.article_strategy,\n        approved_outline: $json.approved_outline\n      })\n    }\n  ]\n})\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1312,
+        304
+      ],
+      "id": "af5d805f-7c94-48f2-b661-e369fb3e246b",
+      "name": "OpenRouter Article Revision"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.plurality.network/mcp",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mcpOAuth2Api",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\",\n  \"Accept\": \"application/json, text/event-stream\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2025-03-26\",\n    \"capabilities\": {},\n    \"clientInfo\": {\n      \"name\": \"n8n-auth-test\",\n      \"version\": \"1.0\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1312,
+        912
+      ],
+      "id": "f3609d8e-debf-42e8-b790-e8457fab0a28",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "017bc4b2-855b-4f48-8e20-1c4e36dedc02",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "pass",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f6c2eb04-b2bf-4bfa-88af-ce470b788fdc",
+      "name": "QA Passed for Plurality Review?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const source = $json;\nif (source.decision !== 'pass') {\n  throw new Error(`Article is not QA-passed: ${source.decision ?? 'missing decision'}`);\n}\nconst article = source.article_draft;\nif (!article || typeof article.title !== 'string' || !article.title.trim()) {\n  throw new Error('Missing article_draft.title');\n}\nif (typeof article.article_markdown !== 'string' || !article.article_markdown.trim()) {\n  throw new Error('Missing article_draft.article_markdown');\n}\nconst title = article.title.trim();\nconst packageText = [\n  `# ${title}`,\n  'Review status: Pending human approval. This memory is a review package, not an approved or published article.',\n  `Meta description: ${article.meta_description || ''}`,\n  '## Full article Markdown',\n  article.article_markdown,\n  '## Sources used',\n  JSON.stringify(article.sources_used ?? [], null, 2),\n  '## Editorial QA',\n  JSON.stringify({\n    decision: source.decision,\n    summary: source.summary ?? '',\n    scores: source.scores ?? {},\n    issues: source.issues ?? [],\n    human_review_questions: source.human_review_questions ?? [],\n    revision_brief: source.revision_brief ?? ''\n  }, null, 2),\n  '## Article strategy',\n  JSON.stringify(source.article_strategy ?? {}, null, 2),\n  '## Approved outline',\n  JSON.stringify(source.approved_outline ?? {}, null, 2)\n].join('\\n\\n');\nreturn {\n  json: {\n    ...source,\n    plurality_review: {\n      profile_id: 'REPLACE_WITH_YOUR_REVIEW_BUCKET_ID',\n      title: `Review: ${title}`,\n      content: packageText,\n      source_platform: 'n8n'\n    }\n  }\n};"
+      },
+      "id": "37827373-2429-4b98-891a-461e4de97bf3",
+      "name": "Prepare Plurality Review Package",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 01 • TOPIC INTAKE\nRead a selected Google Sheets topic row. This manual run assumes the topic already passed human approval #1.",
+        "height": 310,
+        "width": 480,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -80,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "e7c604d9-e497-4ef6-9e7d-1d27dec824c1",
+      "name": "01 • TOPIC INTAKE"
+    },
+    {
+      "parameters": {
+        "content": "## 02 • DEEP RESEARCH\nBuild a research brief, ask OpenRouter for evidence, then parse the findings for the outline.",
+        "height": 310,
+        "width": 625,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "228a1650-c408-4cff-972a-c5c7ff4d8438",
+      "name": "02 • DEEP RESEARCH"
+    },
+    {
+      "parameters": {
+        "content": "## 03 • ARTICLE OUTLINE\nGenerate and parse the article outline. The next connection wraps down to the writing row.",
+        "height": 310,
+        "width": 625,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1040,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "056e347c-48ba-4cfb-8c04-a5504904a31f",
+      "name": "03 • ARTICLE OUTLINE"
+    },
+    {
+      "parameters": {
+        "content": "## 04 • ARTICLE WRITING\nPrepare the approved strategy and outline, then write the article with Claude Opus through the signed-in Mac bridge. The unused DeepSeek writer is disconnected. The Claude result goes to the existing draft parser and editorial QA.",
+        "height": 545,
+        "width": 650,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "2379c101-cc05-4d48-874d-deca5ee4e3ef",
+      "name": "04 • ARTICLE WRITING"
+    },
+    {
+      "parameters": {
+        "content": "## 05 • EDITORIAL QA\nCheck the draft and parse one of three decisions: pass, revise, or human_review.",
+        "height": 340,
+        "width": 860
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        416,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "69746fac-eaf3-441d-848f-27d4373a9bc5",
+      "name": "05 • EDITORIAL QA"
+    },
+    {
+      "parameters": {
+        "content": "## 06 • REVISION BRANCH\nIf QA says revise, this branch calls a revision model. It currently ends there; no revised draft loops back to QA.",
+        "height": 280,
+        "width": 390,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1280,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "c725e1b2-27c3-40e3-80d9-490ff752aa8b",
+      "name": "06 • REVISION BRANCH"
+    },
+    {
+      "parameters": {
+        "content": "## 07 • PLURALITY REVIEW SAVE\nOnly QA pass reaches this path. Package the full article and save it as a pending-review memory in the existing Plurality bucket. This does not create an ACF bucket or publish to WordPress.",
+        "height": 325,
+        "width": 790,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1280,
+        464
+      ],
+      "typeVersion": 1,
+      "id": "88b52993-7095-4059-9e42-8d5a9e27894c",
+      "name": "07 • PLURALITY REVIEW SAVE"
+    },
+    {
+      "parameters": {
+        "content": "## 08 • GOOGLE DOCS REVIEW (DISCONNECTED)\nThese Docs and Sheets nodes form a review chain but are not connected to the active article path.",
+        "height": 335,
+        "width": 760,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -80,
+        896
+      ],
+      "typeVersion": 1,
+      "id": "00b32a3e-0543-4afb-8a55-f9aac2f5c263",
+      "name": "08 • GOOGLE DOCS REVIEW (DISCONNECTED)"
+    },
+    {
+      "parameters": {
+        "content": "## 09 • OLD DIAGNOSTIC (DISCONNECTED)\nThis HTTP request was used for connection diagnosis and is not part of the active save path.",
+        "height": 250,
+        "width": 390,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1280,
+        864
+      ],
+      "typeVersion": 1,
+      "id": "c60da874-5dc9-4c82-b291-c003ea48cfb7",
+      "name": "09 • OLD DIAGNOSTIC (DISCONNECTED)"
+    },
+    {
+      "parameters": {
+        "content": "## 10 • BRANDED HTML FORMATTING\nThe adjacent Code node uses the user-supplied HTML example as a fixed template. It requires explicit approval of the exact title and Markdown, a real hero URL and alt text, then builds one Custom HTML block. It validates TOC/H2 IDs, FAQ/schema parity, images, unchanged CSS/scripts, and no placeholders.\n\n**Isolated test succeeded.** This node is intentionally disconnected until the workflow can read a human approval decision for the exact article version. No WordPress draft step exists yet.",
+        "height": 430,
+        "width": 560,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        896
+      ],
+      "typeVersion": 1,
+      "id": "355ffa09-2548-47f4-881d-144c22be17b9",
+      "name": "10 • BRANDED HTML FORMATTING — READY FOR APPROVAL INPUT"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const TEMPLATE = \"<!--\\n=====================================================================\\n  PLURALITY BLOG POST — container-native version\\n  - NO white card, NO 100vw breakout, NO nested container.\\n  - Renders directly inside the WordPress/theme content container.\\n  - Sidebar uses NATIVE CSS position:sticky (works now that we are\\n    not breaking out of the theme container).\\n  Paste this whole block into a single WordPress \\\"Custom HTML\\\" block.\\n  The post title + featured image come from the block below (the\\n  theme hides its own for blog-style-7).\\n\\n  NOTE: This version also forces the whole PAGE background to white\\n  (overriding the theme's lavender). See \\\".pn-page-white\\\" CSS below\\n  and the ancestor-clearing script near the bottom.\\n=====================================================================\\n-->\\n\\n<!-- Load Inter explicitly so the post uses it regardless of theme context -->\\n<link rel=\\\"preconnect\\\" href=\\\"https://fonts.googleapis.com\\\">\\n<link rel=\\\"preconnect\\\" href=\\\"https://fonts.gstatic.com\\\" crossorigin>\\n<link href=\\\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap\\\" rel=\\\"stylesheet\\\">\\n\\n<style>\\n  /* =================================================================\\n     PAGE BACKGROUND OVERRIDE — makes the whole page white.\\n     This is intentionally OUTSIDE the .pn-post scope so it can reach\\n     the theme wrappers that carry the lavender background.\\n     If lavender still shows after this, inspect the lavender element\\n     and add its selector to this list.\\n     ================================================================= */\\n  html,\\n  body,\\n  .wp-site-blocks,\\n  .wp-block-post-content,\\n  .entry-content,\\n  .is-layout-constrained,\\n  .is-layout-flow,\\n  main {\\n    background: #FFFFFF !important;\\n  }\\n\\n  /* =================================================================\\n     HEADER NAV LINKS — force white on THIS page only.\\n     The theme sets these links to gray (#b0b0a8) and only turns them\\n     white on hover. Because this Custom HTML block loads only on this\\n     page, this rule is automatically scoped here and won't affect the\\n     header on any other page.\\n     ================================================================= */\\n  .plurality-nav-wrap a {\\n    color: #FFFFFF !important;\\n    transition: color .2s ease;\\n  }\\n  .plurality-nav-wrap a:hover {\\n    color: #B0B0A8 !important; /* gray */\\n  }\\n\\n  .pn-post {\\n    --pn-primary: #7E01FF;\\n    --pn-dark: #181A0F;\\n    --pn-text: #2E3338;\\n    --pn-muted: #6B7280;\\n    --pn-border: #ECE6F5;\\n    --pn-bg-soft: #F6F1FD;\\n\\n    font-family: \\\"Inter\\\", -apple-system, BlinkMacSystemFont, \\\"Segoe UI\\\", Roboto, sans-serif;\\n    color: var(--pn-text);\\n    font-size: 17px;\\n    line-height: 1.7;\\n  }\\n\\n  .pn-post * { box-sizing: border-box; }\\n\\n  /* Force our font over the theme's heading font (theme uses Space Grotesk). */\\n  .pn-post,\\n  .pn-post h1, .pn-post h2, .pn-post h3,\\n  .pn-post p, .pn-post li, .pn-post a,\\n  .pn-post summary, .pn-post td, .pn-post th {\\n    font-family: \\\"Inter\\\", -apple-system, BlinkMacSystemFont, \\\"Segoe UI\\\", Roboto, sans-serif;\\n  }\\n\\n  /* Reading progress bar */\\n  .pn-progress-bar {\\n    position: fixed;\\n    top: 0; left: 0;\\n    height: 4px; width: 0%;\\n    background: var(--pn-primary);\\n    z-index: 999999;\\n    transition: width .08s linear;\\n    will-change: width;\\n    pointer-events: none;\\n  }\\n\\n  /* ---- Header (back link / date / title / read time / divider) ---- */\\n  .pn-post .pn-back {\\n    display: inline-flex;\\n    align-items: center;\\n    gap: 10px;\\n    font-size: 14px;\\n    font-weight: 500;\\n    color: var(--pn-muted);\\n    text-decoration: none;\\n    margin: 0 0 32px;\\n  }\\n  .pn-post .pn-back:hover { color: var(--pn-dark); }\\n  .pn-post .pn-back:hover .pn-back-icon { border-color: var(--pn-primary); color: var(--pn-primary); }\\n  .pn-post .pn-back-icon {\\n    display: inline-flex;\\n    align-items: center;\\n    justify-content: center;\\n    width: 28px; height: 28px;\\n    flex-shrink: 0;\\n    border-radius: 50%;\\n    border: 1px solid var(--pn-border);\\n    color: var(--pn-muted);\\n    transition: border-color .15s ease, color .15s ease;\\n  }\\n\\n  .pn-post .pn-date {\\n    font-size: 13px;\\n    font-weight: 600;\\n    text-transform: uppercase;\\n    letter-spacing: 0.08em;\\n    color: var(--pn-muted);\\n    margin: 0 0 14px;\\n  }\\n\\n  .pn-post .pn-title {\\n    font-weight: 700;\\n    font-size: 38px;\\n    line-height: 1.25;\\n    letter-spacing: -0.01em;\\n    color: var(--pn-dark);\\n    margin: 0 0 14px;\\n  }\\n\\n  .pn-post .pn-readtime {\\n    font-size: 13px;\\n    font-weight: 600;\\n    text-transform: uppercase;\\n    letter-spacing: 0.08em;\\n    color: var(--pn-muted);\\n    margin: 0 0 28px;\\n  }\\n\\n  .pn-post .pn-header-divider {\\n    height: 1px;\\n    background: var(--pn-border);\\n    margin: 0 0 40px;\\n  }\\n\\n  .pn-post .pn-featured-wrap {\\n    width: 100%;\\n    height: 400px;\\n    overflow: hidden;\\n    border-radius: 14px;\\n    margin-bottom: 40px;\\n  }\\n  .pn-post .pn-featured-img {\\n    width: 100%; height: 100%;\\n    object-fit: cover; display: block;\\n  }\\n\\n  /* Two-column layout — now a single white card wrapping BOTH the sidebar\\n     and the content, so they share one surface (title + image stay above,\\n     full-width, on the lavender page background). */\\n  .pn-post .pn-layout {\\n    display: grid;\\n    grid-template-columns: 240px minmax(0, 1fr);\\n    gap: 48px;\\n    align-items: start;\\n    background: #FFFFFF;\\n    border-radius: 16px;\\n    padding: 44px 48px;\\n    border: none;\\n    box-shadow: none;\\n  }\\n\\n  /* NATIVE sticky sidebar. No JS. No breakout container above it,\\n     so no ancestor overflow/transform can break it. */\\n  /* The grid cell that reserves the sidebar's space. The inner .pn-sidebar\\n     is positioned by JS (fixed/absolute) but this column keeps the layout\\n     from collapsing. */\\n  .pn-post .pn-sidebar-col { position: relative; }\\n\\n  .pn-post .pn-sidebar {\\n    align-self: start;\\n    max-height: calc(100vh - 80px);\\n    overflow-y: auto;\\n    padding-right: 24px;\\n    border-right: 1px solid var(--pn-border);\\n  }\\n\\n  /* JS adds these. Using getBoundingClientRect() to drive fixed positioning\\n     is immune to ancestor overflow:hidden AND ancestor transforms — the two\\n     things that break native sticky/fixed in this theme. */\\n  .pn-post .pn-sidebar.pn-fixed {\\n    position: fixed;\\n  }\\n  .pn-post .pn-sidebar.pn-bottom {\\n    position: absolute;\\n    bottom: 0;\\n    left: 0;\\n  }\\n  .pn-post .pn-toc-title {\\n    font-size: 12px; font-weight: 600;\\n    text-transform: uppercase; letter-spacing: 0.06em;\\n    color: var(--pn-muted); margin: 0 0 14px;\\n  }\\n  .pn-post .pn-toc-list { list-style: none; margin: 0; padding: 0; }\\n  .pn-post .pn-toc-list li { margin: 0 0 12px; }\\n  .pn-post .pn-toc-list li:last-child { margin-bottom: 0; }\\n  .pn-post .pn-toc-list a {\\n    display: block;\\n    color: var(--pn-muted);\\n    text-decoration: none;\\n    font-size: 14px; line-height: 1.4;\\n    border-left: 2px solid transparent;\\n    padding-left: 14px;\\n    transition: color .15s ease, border-color .15s ease;\\n  }\\n  .pn-post .pn-toc-list a:hover { color: var(--pn-dark); }\\n  .pn-post .pn-toc-list a.pn-active {\\n    color: var(--pn-dark);\\n    font-weight: 600;\\n    border-left-color: var(--pn-primary);\\n  }\\n\\n  /* Content — sits on the shared white .pn-layout card now, so no own bg */\\n  .pn-post .pn-content {\\n    min-width: 0;\\n  }\\n  .pn-post h2 {\\n    font-weight: 700; font-size: 27px; line-height: 1.3;\\n    color: var(--pn-dark);\\n    margin: 56px 0 12px; scroll-margin-top: 40px;\\n  }\\n  .pn-post .pn-content > h2:first-child { margin-top: 0; }\\n  .pn-post h3 {\\n    font-weight: 600; font-size: 21px; line-height: 1.35;\\n    color: var(--pn-dark);\\n    margin: 40px 0 8px; scroll-margin-top: 40px;\\n  }\\n  .pn-post p { margin: 0 0 18px; }\\n  .pn-post ul, .pn-post ol { margin: 0 0 20px; padding-left: 22px; }\\n  .pn-post li { margin-bottom: 8px; }\\n  .pn-post strong { color: var(--pn-dark); font-weight: 600; }\\n  .pn-post a:not(.pn-btn):not(.pn-back) {\\n    color: var(--pn-primary);\\n    text-decoration: underline; text-underline-offset: 2px;\\n  }\\n  .pn-post a:not(.pn-btn):not(.pn-back):hover { color: var(--pn-dark); }\\n\\n  /* Callout */\\n  .pn-post .pn-callout {\\n    background: var(--pn-bg-soft);\\n    border-left: 3px solid var(--pn-primary);\\n    border-radius: 8px;\\n    padding: 18px 22px; margin: 0 0 24px;\\n    font-size: 16px;\\n  }\\n  .pn-post .pn-callout p:last-child { margin-bottom: 0; }\\n\\n  /* Button */\\n  .pn-post .pn-btn-wrap { text-align: center; margin: 32px 0 40px; }\\n  .pn-post .pn-btn-wrap.pn-align-left { text-align: left; }\\n  .pn-post .pn-btn {\\n    display: inline-block;\\n    background: var(--pn-dark);\\n    color: #fff !important;\\n    font-weight: 600; font-size: 14px;\\n    text-decoration: none !important;\\n    padding: 13px 26px; border-radius: 30px;\\n    transition: background .15s ease;\\n  }\\n  .pn-post .pn-btn:hover { background: var(--pn-primary); color: #fff !important; }\\n\\n  /* Table */\\n  .pn-post .pn-table-wrap {\\n    width: 100%; overflow-x: auto;\\n    border-radius: 10px; border: 1px solid var(--pn-border);\\n    margin: 0 0 28px;\\n  }\\n  .pn-post table { width: 100%; border-collapse: collapse; min-width: 480px; font-size: 14.5px; }\\n  .pn-post thead th {\\n    background: var(--pn-dark); color: #fff; font-weight: 600;\\n    text-align: left; padding: 13px 16px; white-space: nowrap;\\n  }\\n  .pn-post tbody td { padding: 13px 16px; border-bottom: 1px solid var(--pn-border); background: #fff; }\\n  .pn-post tbody tr:last-child td { border-bottom: none; }\\n\\n  /* FAQ */\\n  .pn-post .pn-faq { margin-top: 8px; }\\n  .pn-post .pn-faq-item { border-bottom: 1px solid var(--pn-border); }\\n  .pn-post .pn-faq-item summary {\\n    cursor: pointer; list-style: none;\\n    display: flex; align-items: center; justify-content: space-between;\\n    gap: 16px; padding: 18px 4px;\\n    font-weight: 600; font-size: 16px; color: var(--pn-dark);\\n  }\\n  .pn-post .pn-faq-item summary::-webkit-details-marker { display: none; }\\n  .pn-post .pn-faq-item summary::after {\\n    content: \\\"+\\\"; flex-shrink: 0; font-size: 20px; font-weight: 400;\\n    color: var(--pn-primary);\\n  }\\n  .pn-post .pn-faq-item[open] summary::after { content: \\\"\\\\2212\\\"; }\\n  .pn-post .pn-faq-item .pn-faq-answer { padding: 0 4px 18px; font-size: 15.5px; color: var(--pn-text); }\\n  .pn-post .pn-faq-item .pn-faq-answer p:last-child { margin-bottom: 0; }\\n\\n  /* Responsive: sidebar becomes a static box on top */\\n  @media (max-width: 900px) {\\n    .pn-post .pn-layout { grid-template-columns: 1fr; gap: 0; }\\n    .pn-post .pn-sidebar,\\n    .pn-post .pn-sidebar.pn-fixed,\\n    .pn-post .pn-sidebar.pn-bottom {\\n      position: static !important;\\n      top: auto !important; left: auto !important;\\n      bottom: auto !important; width: auto !important;\\n      max-height: none; overflow-y: visible;\\n      border-left: none; padding: 20px 22px;\\n      background: var(--pn-bg-soft);\\n      border: 1px solid var(--pn-border);\\n      border-radius: 12px; margin-bottom: 36px;\\n    }\\n    .pn-post .pn-toc-list a { margin-left: 0; padding-left: 12px; }\\n    .pn-post .pn-featured-wrap { height: 220px; }\\n  }\\n  @media (max-width: 600px) {\\n    .pn-post { font-size: 16px; }\\n    .pn-post .pn-title { font-size: 28px; }\\n    .pn-post h2 { font-size: 22px; }\\n    .pn-post h3 { font-size: 18px; }\\n  }\\n</style>\\n\\n<div class=\\\"pn-progress-bar\\\" id=\\\"pn-progress-bar\\\"></div>\\n\\n<article class=\\\"pn-post\\\" id=\\\"pn-article\\\">\\n\\n  <!-- Back link — update href to your blog listing URL if you don't want\\n       browser-back behavior (currently: javascript:history.back()) -->\\n  <a class=\\\"pn-back\\\" href=\\\"{{BACK_LINK_HREF}}\\\">\\n    <span class=\\\"pn-back-icon\\\" aria-hidden=\\\"true\\\">\\n      <svg width=\\\"8\\\" height=\\\"13\\\" viewBox=\\\"0 0 8 13\\\" fill=\\\"none\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\">\\n        <path d=\\\"M7 1L1.5 6.5L7 12\\\" stroke=\\\"currentColor\\\" stroke-width=\\\"1.5\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>\\n      </svg>\\n    </span>\\n    All articles\\n  </a>\\n\\n  <p class=\\\"pn-date\\\">{{POST_DATE}}</p>\\n\\n  <h1 class=\\\"pn-title\\\">{{POST_TITLE}}</h1>\\n\\n  <!-- Auto-calculated from word count below (~200 wpm). Edit the script's\\n       fallback text if you'd rather hardcode it per post. -->\\n  <p class=\\\"pn-readtime\\\" id=\\\"pn-readtime\\\">Reading time</p>\\n\\n  <div class=\\\"pn-header-divider\\\"></div>\\n\\n  <div class=\\\"pn-featured-wrap\\\">\\n    <img class=\\\"pn-featured-img\\\" src=\\\"{{FEATURED_IMG_URL}}\\\" alt=\\\"{{FEATURED_IMG_ALT}}\\\" />\\n  </div>\\n\\n  <div class=\\\"pn-layout\\\" id=\\\"pn-layout\\\">\\n\\n    <div class=\\\"pn-sidebar-col\\\" id=\\\"pn-sidebar-col\\\">\\n      <aside class=\\\"pn-sidebar\\\" id=\\\"pn-sidebar\\\">\\n        <p class=\\\"pn-toc-title\\\">In this article</p>\\n        <ul class=\\\"pn-toc-list\\\" id=\\\"pn-toc-list\\\">\\n          {{TOC}}\\n        </ul>\\n      </aside>\\n    </div>\\n\\n    <div class=\\\"pn-content\\\" id=\\\"pn-content\\\">\\n      {{CONTENT}}\\n      {{FAQ_HTML}}\\n    </div><!-- /.pn-content -->\\n  </div><!-- /.pn-layout -->\\n</article>\\n\\n<script type=\\\"application/ld+json\\\">\\n{\\\"@context\\\":\\\"https://schema.org\\\",\\\"@type\\\":\\\"FAQPage\\\",\\\"mainEntity\\\":[{{FAQ_SCHEMA}}]}\\n</script>\\n\\n<!-- =================================================================\\n     PAGE BACKGROUND OVERRIDE (JS fallback)\\n     Walks up from the article and clears every ancestor's background,\\n     then paints html + body white. This catches any lavender wrapper\\n     the CSS selector list above didn't reach (e.g. an inline style or\\n     a theme-specific wrapper class).\\n     ================================================================= -->\\n<script>\\n(function () {\\n  function paintWhite() {\\n    document.documentElement.style.setProperty('background', '#FFFFFF', 'important');\\n    document.body.style.setProperty('background', '#FFFFFF', 'important');\\n\\n    var el = document.getElementById('pn-article');\\n    while (el && el !== document.body) {\\n      // Make each wrapper transparent so the white body shows through.\\n      // We skip the article itself so its own children keep their styling.\\n      if (el.id !== 'pn-article') {\\n        el.style.setProperty('background', 'transparent', 'important');\\n      }\\n      el = el.parentElement;\\n    }\\n  }\\n  if (document.readyState === 'loading') {\\n    document.addEventListener('DOMContentLoaded', paintWhite);\\n  } else {\\n    paintWhite();\\n  }\\n  window.addEventListener('load', paintWhite);\\n})();\\n</script>\\n\\n<!-- Sticky sidebar driven by getBoundingClientRect (viewport-relative), so it\\n     is immune to the theme's overflow-x:hidden AND any transformed ancestor.\\n     The .pn-sidebar-col grid cell reserves the space; the inner bar goes\\n     fixed while scrolling through the article, then parks at the column's\\n     bottom near the end. -->\\n<script>\\n(function () {\\n  function init() {\\n    var colCell = document.getElementById('pn-sidebar-col');\\n    var bar = document.getElementById('pn-sidebar');\\n    var layout = document.getElementById('pn-layout');\\n    if (!colCell || !bar || !layout) return;\\n\\n    var TOP = 40;     // gap from top of viewport when pinned\\n    var BOTTOM = 24;  // gap kept at the bottom before parking\\n\\n    function isMobile() {\\n      return window.matchMedia('(max-width: 900px)').matches;\\n    }\\n\\n    function clear() {\\n      bar.classList.remove('pn-fixed', 'pn-bottom');\\n      bar.style.top = '';\\n      bar.style.left = '';\\n      bar.style.width = '';\\n    }\\n\\n    function update() {\\n      if (isMobile()) { clear(); return; }\\n\\n      var cellRect = colCell.getBoundingClientRect();\\n      var rowRect = layout.getBoundingClientRect();  // the two-column row only\\n      var barHeight = bar.offsetHeight;\\n\\n      if (rowRect.top > TOP) {\\n        // Two-column section hasn't reached the pin line yet: normal flow.\\n        // (This is what keeps the sidebar from riding up over the title/image.)\\n        clear();\\n        return;\\n      }\\n\\n      // Would the pinned bar's bottom pass the bottom of the two-column row?\\n      if (rowRect.bottom - BOTTOM < TOP + barHeight) {\\n        // Park at the bottom of the column (absolute within .pn-sidebar-col).\\n        bar.classList.remove('pn-fixed');\\n        bar.classList.add('pn-bottom');\\n        bar.style.top = '';\\n        bar.style.left = '';\\n        bar.style.width = cellRect.width + 'px';\\n      } else {\\n        // Pin to viewport, aligned to the column cell's live left/width.\\n        bar.classList.add('pn-fixed');\\n        bar.classList.remove('pn-bottom');\\n        bar.style.top = TOP + 'px';\\n        bar.style.left = cellRect.left + 'px';\\n        bar.style.width = cellRect.width + 'px';\\n      }\\n    }\\n\\n    window.addEventListener('scroll', update, { passive: true });\\n    window.addEventListener('resize', update);\\n    update();\\n    setTimeout(update, 300);\\n    setTimeout(update, 1200);\\n  }\\n\\n  if (document.readyState === 'loading') {\\n    document.addEventListener('DOMContentLoaded', init);\\n  } else {\\n    init();\\n  }\\n  window.addEventListener('load', init);\\n})();\\n</script>\\n\\n<!-- Scroll-spy: highlights the current section in the sidebar -->\\n<script>\\n(function () {\\n  var links = document.querySelectorAll('#pn-toc-list a');\\n  if (!links.length) return;\\n  var headings = [];\\n  links.forEach(function (link) {\\n    var id = link.getAttribute('href').replace('#', '');\\n    var el = document.getElementById(id);\\n    if (el) headings.push({ id: id, el: el, link: link });\\n  });\\n  if (!headings.length) return;\\n  var observer = new IntersectionObserver(function (entries) {\\n    entries.forEach(function (entry) {\\n      var match = headings.find(function (h) { return h.el === entry.target; });\\n      if (!match) return;\\n      if (entry.isIntersecting) {\\n        links.forEach(function (l) { l.classList.remove('pn-active'); });\\n        match.link.classList.add('pn-active');\\n      }\\n    });\\n  }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });\\n  headings.forEach(function (h) { observer.observe(h.el); });\\n})();\\n</script>\\n\\n<!-- Auto reading time: counts words in #pn-content and estimates at 200wpm.\\n     Safe to delete this script and hand-type the <p id=\\\"pn-readtime\\\"> text\\n     instead if you'd rather set it manually per post. -->\\n<script>\\n(function () {\\n  var el = document.getElementById('pn-readtime');\\n  var content = document.getElementById('pn-content');\\n  if (!el || !content) return;\\n  var words = content.innerText.trim().split(/\\\\s+/).length;\\n  var minutes = Math.max(1, Math.round(words / 200));\\n  el.textContent = minutes + (minutes === 1 ? ' minute read' : ' minutes read');\\n})();\\n</script>\\n\\n<!-- Reading progress bar -->\\n<script>\\n(function () {\\n  var bar = document.getElementById('pn-progress-bar');\\n  var article = document.getElementById('pn-article');\\n  if (!bar || !article) return;\\n  function update() {\\n    var rect = article.getBoundingClientRect();\\n    var total = rect.height - window.innerHeight;\\n    var scrolled = -rect.top;\\n    var pct = total > 0 ? (scrolled / total) * 100 : 0;\\n    pct = Math.max(0, Math.min(100, pct));\\n    bar.style.width = pct + '%';\\n  }\\n  window.addEventListener('scroll', update, { passive: true });\\n  window.addEventListener('resize', update);\\n  update();\\n})();\\n</script>\\n\";\n/* Deterministic renderer for the user-supplied Plurality post HTML. No network calls. */\nfunction fail(code, detail) { throw new Error(`${code}: ${detail}`); }\nfunction esc(value) { return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#8217;').replace(/—/g, '&mdash;').replace(/→/g, '&rarr;'); }\nfunction text(value) { return esc(value).replace(/\\r/g, ''); }\nfunction url(value, { back = false } = {}) {\n  const raw = String(value || '').trim();\n  if (back && raw === 'javascript:history.back()') return raw;\n  // n8n's isolated Code runtime does not expose the URL constructor.\n  if (!/^https?:\\/\\/[^\\s/?#<>\"'`]+[^\\s<>\"'`]*$/i.test(raw)) fail('INVALID_URL', raw || '(empty)');\n  return esc(raw);\n}\nfunction inline(source) {\n  const s = String(source);\n  const pattern = /(!?\\[[^\\]]+\\]\\([^)]+\\)|\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|`[^`]+`)/g;\n  let out = '', last = 0, m;\n  while ((m = pattern.exec(s))) {\n    out += text(s.slice(last, m.index));\n    const token = m[0];\n    if (token.startsWith('![')) fail('UNSUPPORTED_INLINE_IMAGE', 'Inline figures need an approved figure component.');\n    if (token.startsWith('[')) {\n      const match = token.match(/^\\[([^\\]]+)\\]\\(([^)]+)\\)$/);\n      out += `<a href=\"${url(match[2])}\" target=\"_blank\" rel=\"noopener\">${text(match[1])}</a>`;\n    } else if (token.startsWith('**')) out += `<strong>${text(token.slice(2, -2))}</strong>`;\n    else if (token.startsWith('*')) out += `<em>${text(token.slice(1, -1))}</em>`;\n    else out += `<code>${text(token.slice(1, -1))}</code>`;\n    last = pattern.lastIndex;\n  }\n  return out + text(s.slice(last));\n}\nfunction plainInline(source) {\n  return String(source).replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1').replace(/\\*\\*([^*]+)\\*\\*/g, '$1').replace(/\\*([^*]+)\\*/g, '$1').replace(/`([^`]+)`/g, '$1');\n}\nfunction slug(label, used) {\n  const base = label.toLowerCase().normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || 'section';\n  let candidate = base, number = 2;\n  while (used.has(candidate)) candidate = `${base}-${number++}`;\n  used.add(candidate); return candidate;\n}\nfunction listMarker(line) { const m = line.match(/^(\\s*)([-*+] |\\d+\\. )(.*)$/); return m && { indent: m[1].length, kind: /^\\d/.test(m[2]) ? 'ol' : 'ul', value: m[3] }; }\nfunction parseList(lines, start, depth) {\n  const first = listMarker(lines[start]);\n  const tag = first.kind;\n  let i = start, html = `<${tag}>\\n`;\n  while (i < lines.length) {\n    const m = listMarker(lines[i]);\n    if (!m || m.indent < depth) break;\n    if (m.indent > depth) fail('INVALID_LIST_INDENT', lines[i]);\n    if (m.kind !== tag) break;\n    html += `  <li>${inline(m.value)}`;\n    i++;\n    const next = i < lines.length && listMarker(lines[i]);\n    if (next && next.indent > depth) {\n      const nested = parseList(lines, i, next.indent);\n      html += `\\n${nested.html}`; i = nested.next;\n    }\n    html += '</li>\\n';\n  }\n  return { html: html + `</${tag}>`, next: i };\n}\nfunction renderMarkdown(markdown, expectedTitle) {\n  const lines = String(markdown).replace(/\\r\\n?/g, '\\n').split('\\n');\n  const toc = [], used = new Set(), blocks = [], warnings = [];\n  let i = 0, sawBody = false;\n  while (i < lines.length) {\n    const line = lines[i], trimmed = line.trim();\n    if (!trimmed) { i++; continue; }\n    if (/^# /.test(line)) {\n      if (sawBody || line.slice(2).trim() !== expectedTitle) fail('UNEXPECTED_H1', line);\n      i++; continue;\n    }\n    sawBody = true;\n    if (/^```/.test(trimmed)) {\n      const code = []; i++;\n      while (i < lines.length && !/^```/.test(lines[i].trim())) code.push(lines[i++]);\n      if (i >= lines.length) fail('UNCLOSED_CODE_FENCE', 'Missing closing ```');\n      i++; warnings.push('Code fence rendered inside existing callout styling.');\n      blocks.push(`<div class=\"pn-callout\"><pre><code>${text(code.join('\\n'))}</code></pre></div>`); continue;\n    }\n    if (/^## /.test(line)) {\n      const label = line.slice(3).trim();\n      if (/^(faqs?|frequently asked questions)$/i.test(label)) fail('FAQ_IN_MARKDOWN', 'Supply approved FAQ pairs in content_assets.faq instead.');\n      const id = slug(label, used); toc.push({ id, label }); blocks.push(`<h2 id=\"${id}\">${inline(label)}</h2>`); i++; continue;\n    }\n    if (/^### /.test(line)) { blocks.push(`<h3>${inline(line.slice(4).trim())}</h3>`); i++; continue; }\n    if (/^#{4,6} /.test(line)) fail('UNSUPPORTED_HEADING_LEVEL', line);\n    if (/^!\\[[^\\]]*\\]\\([^)]+\\)/.test(trimmed)) fail('UNSUPPORTED_INLINE_IMAGE', 'Need approved figure markup before rendering inline images.');\n    if (/^\\|/.test(trimmed) && i + 1 < lines.length && /^\\|?\\s*:?-{3,}/.test(lines[i + 1].trim())) {\n      const cols = row => row.trim().replace(/^\\||\\|$/g, '').split('|').map(x => x.trim());\n      const heads = cols(line); i += 2; const rows = [];\n      while (i < lines.length && /^\\|/.test(lines[i].trim())) { rows.push(cols(lines[i])); i++; }\n      if (rows.some(r => r.length !== heads.length)) fail('INVALID_TABLE', 'Uneven table columns');\n      blocks.push(`<div class=\"pn-table-wrap\"><table><thead><tr>${heads.map(h => `<th>${inline(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`); continue;\n    }\n    const lm = listMarker(line);\n    if (lm) { const result = parseList(lines, i, lm.indent); blocks.push(result.html); i = result.next; continue; }\n    if (/^> /.test(line)) {\n      const parts = [];\n      while (i < lines.length && /^> /.test(lines[i])) parts.push(lines[i++].slice(2));\n      blocks.push(`<div class=\"pn-callout\"><p>${inline(parts.join(' '))}</p></div>`); continue;\n    }\n    if (/^---+$/.test(trimmed)) { i++; continue; }\n    const parts = [];\n    while (i < lines.length && lines[i].trim() && !/^(#{1,6} |```|> |!\\[|\\|)/.test(lines[i]) && !listMarker(lines[i])) parts.push(lines[i++].trim());\n    if (!parts.length) fail('UNSUPPORTED_MARKDOWN', line);\n    blocks.push(`<p>${inline(parts.join(' '))}</p>`);\n  }\n  if (!toc.length) fail('MISSING_H2', 'Article needs at least one H2 section.');\n  return { html: blocks.join('\\n\\n'), toc, warnings };\n}\nfunction fixedBlocks(html) { return [...html.matchAll(/<style>[\\s\\S]*?<\\/style>|<script>[\\s\\S]*?<\\/script>/g)].map(m => m[0]); }\nfunction replace(template, name, value) {\n  const token = `{{${name}}}`;\n  if (!template.includes(token)) fail('MISSING_TEMPLATE_TOKEN', name);\n  return template.split(token).join(value);\n}\nfunction buildPost(input, template) {\n  const article = input.article_draft || {};\n  const approval = input.approval || {};\n  const assets = input.content_assets || {};\n  if (approval.status !== 'approved' || !approval.reviewer || !approval.approved_at) fail('NOT_APPROVED', 'Explicit reviewer, approval date, and approved status are required.');\n  if (!article.title || !article.article_markdown) fail('MISSING_ARTICLE', 'Title and Markdown are required.');\n  if (approval.approved_article_markdown !== article.article_markdown || approval.approved_title !== article.title) fail('APPROVED_VERSION_MISMATCH', 'Approved title and Markdown must match the input exactly.');\n  if (!assets.post_date || !assets.featured_img_url || !assets.featured_img_alt) fail('MISSING_ASSETS', 'Date, approved hero URL, and alt text are required.');\n  const rendered = renderMarkdown(article.article_markdown, article.title);\n  const faq = assets.faq || [];\n  if (!Array.isArray(faq)) fail('INVALID_FAQ', 'FAQ must be an array.');\n  const toc = [...rendered.toc];\n  let faqHtml = '', faqSchema = '';\n  if (faq.length) {\n    if (toc.some(x => x.id === 'faqs')) fail('DUPLICATE_FAQ', 'Article already has an FAQ section.');\n    toc.push({ id: 'faqs', label: 'Frequently Asked Questions' });\n    faqHtml = `<h2 id=\"faqs\">Frequently Asked Questions</h2>\\n<div class=\"pn-faq\">\\n${faq.map((item, i) => {\n      if (!item.question || !item.answer) fail('INVALID_FAQ', `FAQ item ${i + 1} is incomplete`);\n      return `  <details class=\"pn-faq-item\"${i === 0 ? ' open' : ''}><summary>${text(item.question)}</summary><div class=\"pn-faq-answer\"><p>${inline(item.answer)}</p></div></details>`;\n    }).join('\\n')}\\n</div>`;\n    faqSchema = faq.map(item => JSON.stringify({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: plainInline(item.answer) } })).join(',\\n    ');\n  }\n  let out = template;\n  const values = {\n    POST_TITLE: text(article.title), POST_DATE: text(assets.post_date), FEATURED_IMG_URL: url(assets.featured_img_url), FEATURED_IMG_ALT: text(assets.featured_img_alt),\n    BACK_LINK_HREF: url(assets.back_link_href || 'javascript:history.back()', { back: true }),\n    TOC: toc.map(x => `<li><a href=\"#${x.id}\">${inline(x.label)}</a></li>`).join('\\n          '),\n    CONTENT: rendered.html, FAQ_HTML: faqHtml, FAQ_SCHEMA: faqSchema,\n  };\n  for (const [name, value] of Object.entries(values)) out = replace(out, name, value);\n  if (!faq.length) out = out.replace(/<script type=\"application\\/ld\\+json\">[\\s\\S]*?<\\/script>\\s*/, '');\n  if (/{{[A-Z_]+}}/.test(out)) fail('LEFTOVER_TEMPLATE_TOKEN', 'Output still contains placeholders.');\n  if (JSON.stringify(fixedBlocks(out)) !== JSON.stringify(fixedBlocks(template))) fail('FIXED_BLOCK_CHANGED', 'CSS or behavior script changed.');\n  const hrefs = [...out.matchAll(/<li><a href=\"#([a-z0-9-]+)\">/g)].map(m => m[1]);\n  const ids = [...out.matchAll(/<h2 id=\"([a-z0-9-]+)\">/g)].map(m => m[1]);\n  if (JSON.stringify(hrefs) !== JSON.stringify(ids) || new Set(ids).size !== ids.length) fail('TOC_MISMATCH', 'TOC links and H2 IDs differ.');\n  const imageTags = [...out.matchAll(/<img\\b[^>]*>/g)].map(m => m[0]);\n  for (const tag of imageTags) if (!/src=\"https?:\\/\\/[^\\\"]+\"/.test(tag) || !/alt=\"[^\\\"]+\"/.test(tag)) fail('INVALID_IMAGE', tag);\n  return { wordpress_html: out, title: article.title, meta_description: article.meta_description || '', template_version: input.template_version || '', build_manifest: { toc_ids: ids, image_count: imageTags.length, faq_count: faq.length }, validation: { valid: true, warnings: rendered.warnings } };\n}\n\n\nconst built = buildPost($json, TEMPLATE);\nreturn { json: { ...$json, ...built, template_version: \"sha256:4bc0a5d7b4766ef650983bc54946352662ff13734bed01f34a82e735977b0dbb\" } };"
+      },
+      "id": "901442ac-824d-42c7-b6c2-0ec30dbe27b2",
+      "name": "Format Approved Article to Plurality HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        1184
+      ]
+    },
+    {
+      "id": "7a7e72e3-d1b2-4991-8512-570f4d7ee31d",
+      "name": "SETUP • CONTENT PRODUCTION ON A NEW LAPTOP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        -400
+      ],
+      "parameters": {
+        "content": "## Teammate setup · Content Production\nImport this workflow into your n8n instance and rebind every credential; credential IDs are not included in this export. Set up Google Sheets, OpenRouter, the local Claude subscription bridge, and AI Context Flow memory as described near their nodes. Confirm your approved source row and bucket before a full run: one run can process multiple approved rows, call paid research/QA models, and create review memories.",
+        "width": 760,
+        "height": 460,
+        "color": 7
+      }
+    },
+    {
+      "id": "6442de2e-393d-4d9b-b91f-be8d04b20719",
+      "name": "SETUP • CONTENT PRODUCTION SHEETS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -850
+      ],
+      "parameters": {
+        "content": "### External setup · Google Sheets\nConnect your own Google Sheets OAuth credential. **Get row(s) in sheet** reads Human Approval #1 from the spreadsheet used by Content Strategy V1. Replace the spreadsheet and tab IDs, refresh mappings, and verify its approval filter selects only the row(s) you intend. **Submit for Human Approval #2** belongs to a disconnected Docs review path; reconfigure it only if you choose to reconnect that path.",
+        "width": 900,
+        "height": 360,
+        "color": 7
+      }
+    },
+    {
+      "id": "743b264c-d4e3-4304-b526-417a9832b5fb",
+      "name": "SETUP • CONTENT PRODUCTION OPENROUTER",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        850,
+        -850
+      ],
+      "parameters": {
+        "content": "### External setup · OpenRouter\nUse your own OpenRouter API key in an n8n Header Auth credential on **OpenRouter - Deep Research**, **OpenRouter - Generate Outline**, **OpenRouter - Editorial QA**, and **OpenRouter Article Revision**. Check model choices and credits. Article writing on the active path uses Claude through the local bridge; the separate **OpenRouter - Article Writer1** node is disconnected.",
+        "width": 1100,
+        "height": 360,
+        "color": 7
+      }
+    },
+    {
+      "id": "e4e345eb-1fd9-4a63-882b-9539ccd7baaf",
+      "name": "SETUP • CLAUDE SUBSCRIPTION BRIDGE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        240
+      ],
+      "parameters": {
+        "content": "### Local setup · Claude writer on your Mac\nInstall Claude CLI and sign in with `claude login` using your own Claude subscription. Copy the workflow’s `scripts/claude_writer_bridge.py` and `scripts/run_claude_writer_bridge.py`; create a local ignored `.env` with your own `CLAUDE_BRIDGE_TOKEN`. If using the supplied LaunchAgent plist, replace its absolute Python, project, and log paths for *your* Mac, then load it in your user session. Configure **Claude Subscription - Article Writer** with an n8n Bearer credential containing the same token. From Docker n8n, the bridge URL is `http://host.docker.internal:8765/write-article`; verify `/health` first. If n8n runs directly on your Mac, use the reachable local host address instead.",
+        "width": 600,
+        "height": 540,
+        "color": 7
+      }
+    },
+    {
+      "id": "2950fc5a-a7d2-43c1-9eb1-d2f2fe93bc81",
+      "name": "SETUP • REVIEW MEMORY BUCKET",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2110,
+        464
+      ],
+      "parameters": {
+        "content": "### External setup · AI Context Flow review memory\nCreate or select your own review bucket in AI Context Flow. Replace the `profile_id` placeholder in **Prepare Plurality Review Package** with its bucket ID. Connect **Save Article to AI Context Flow** to your own HTTP Bearer PAT credential; endpoint `https://app.plurality.network/mcp`, tool `save_memory`. The active path saves a *pending human review* package only when QA passes. It does not publish or create a WordPress draft.",
+        "width": 780,
+        "height": 440,
+        "color": 7
+      }
+    },
+    {
+      "id": "9b35fd02-b7aa-442c-b3ac-6fc60b0101e1",
+      "name": "SETUP • OPTIONAL GOOGLE DOCS REVIEW",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1380
+      ],
+      "parameters": {
+        "content": "### Optional external setup · Google Docs review\n**Create Article Review Doc**, **Insert Article Content**, and **Submit for Human Approval #2** are disconnected. To use this optional path, authorize your own Google Docs and Google Sheets OAuth credentials, choose your document location and approval spreadsheet/tab, then design the connection from the approved article version. Do not assume these nodes run in the current workflow.",
+        "width": 760,
+        "height": 360,
+        "color": 7
+      }
+    },
+    {
+      "id": "b27f0939-dfed-4206-8574-afe17b3f0ed0",
+      "name": "SETUP • HTML AND WORDPRESS HANDOFF",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        1380
+      ],
+      "parameters": {
+        "content": "### Optional next stage · HTML and WordPress\n**Format Approved Article to Plurality HTML** contains the supplied branded HTML template and passed an isolated formatting test, but it is disconnected. It needs the exact approved title/Markdown plus a real hero image URL and alt text. A teammate must wire an exact-version Human Approval #2 input and validate the rendered HTML. No WordPress credential, draft node, or publishing path is configured here; set those up and test on staging before making any draft.",
+        "width": 1000,
+        "height": 440,
+        "color": 7
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Prepare Deep Research Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Deep Research Brief": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Deep Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Deep Research": {
+      "main": [
+        [
+          {
+            "node": "Parse Deep Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Deep Research": {
+      "main": [
+        [
+          {
+            "node": "Prepare outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare outline": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Generate Outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Generate Outline": {
+      "main": [
+        [
+          {
+            "node": "Parse outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse outline": {
+      "main": [
+        [
+          {
+            "node": "Prepare Article Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Article Writer": {
+      "main": [
+        [
+          {
+            "node": "Claude Subscription - Article Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Article Draft": {
+      "main": [
+        [
+          {
+            "node": "Prepare Editorial QA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Editorial QA": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Editorial QA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Editorial QA": {
+      "main": [
+        [
+          {
+            "node": "Parse Editorial QA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Editorial QA": {
+      "main": [
+        [
+          {
+            "node": "Needs Article Revision?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Article Revision?": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Article Revision",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "QA Passed for Plurality Review?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Article Review Doc": {
+      "main": [
+        [
+          {
+            "node": "Insert Article Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Article Content": {
+      "main": [
+        [
+          {
+            "node": "Submit for Human Approval #2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QA Passed for Plurality Review?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Plurality Review Package",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Prepare Plurality Review Package": {
+      "main": [
+        [
+          {
+            "node": "Save Article to AI Context Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Subscription - Article Writer": {
+      "main": [
+        [
+          {
+            "node": "Parse Article Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

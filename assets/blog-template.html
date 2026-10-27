@@ -1,0 +1,551 @@
+<!--
+=====================================================================
+  PLURALITY BLOG POST — container-native version
+  - NO white card, NO 100vw breakout, NO nested container.
+  - Renders directly inside the WordPress/theme content container.
+  - Sidebar uses NATIVE CSS position:sticky (works now that we are
+    not breaking out of the theme container).
+  Paste this whole block into a single WordPress "Custom HTML" block.
+  The post title + featured image come from the block below (the
+  theme hides its own for blog-style-7).
+
+  NOTE: This version also forces the whole PAGE background to white
+  (overriding the theme's lavender). See ".pn-page-white" CSS below
+  and the ancestor-clearing script near the bottom.
+=====================================================================
+-->
+
+<!-- Load Inter explicitly so the post uses it regardless of theme context -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* =================================================================
+     PAGE BACKGROUND OVERRIDE — makes the whole page white.
+     This is intentionally OUTSIDE the .pn-post scope so it can reach
+     the theme wrappers that carry the lavender background.
+     If lavender still shows after this, inspect the lavender element
+     and add its selector to this list.
+     ================================================================= */
+  html,
+  body,
+  .wp-site-blocks,
+  .wp-block-post-content,
+  .entry-content,
+  .is-layout-constrained,
+  .is-layout-flow,
+  main {
+    background: #FFFFFF !important;
+  }
+
+  /* =================================================================
+     HEADER NAV LINKS — force white on THIS page only.
+     The theme sets these links to gray (#b0b0a8) and only turns them
+     white on hover. Because this Custom HTML block loads only on this
+     page, this rule is automatically scoped here and won't affect the
+     header on any other page.
+     ================================================================= */
+  .plurality-nav-wrap a {
+    color: #FFFFFF !important;
+    transition: color .2s ease;
+  }
+  .plurality-nav-wrap a:hover {
+    color: #B0B0A8 !important; /* gray */
+  }
+
+  .pn-post {
+    --pn-primary: #7E01FF;
+    --pn-dark: #181A0F;
+    --pn-text: #2E3338;
+    --pn-muted: #6B7280;
+    --pn-border: #ECE6F5;
+    --pn-bg-soft: #F6F1FD;
+
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--pn-text);
+    font-size: 17px;
+    line-height: 1.7;
+  }
+
+  .pn-post * { box-sizing: border-box; }
+
+  /* Force our font over the theme's heading font (theme uses Space Grotesk). */
+  .pn-post,
+  .pn-post h1, .pn-post h2, .pn-post h3,
+  .pn-post p, .pn-post li, .pn-post a,
+  .pn-post summary, .pn-post td, .pn-post th {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Reading progress bar */
+  .pn-progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 4px; width: 0%;
+    background: var(--pn-primary);
+    z-index: 999999;
+    transition: width .08s linear;
+    will-change: width;
+    pointer-events: none;
+  }
+
+  /* ---- Header (back link / date / title / read time / divider) ---- */
+  .pn-post .pn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pn-muted);
+    text-decoration: none;
+    margin: 0 0 32px;
+  }
+  .pn-post .pn-back:hover { color: var(--pn-dark); }
+  .pn-post .pn-back:hover .pn-back-icon { border-color: var(--pn-primary); color: var(--pn-primary); }
+  .pn-post .pn-back-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid var(--pn-border);
+    color: var(--pn-muted);
+    transition: border-color .15s ease, color .15s ease;
+  }
+
+  .pn-post .pn-date {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pn-muted);
+    margin: 0 0 14px;
+  }
+
+  .pn-post .pn-title {
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--pn-dark);
+    margin: 0 0 14px;
+  }
+
+  .pn-post .pn-readtime {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pn-muted);
+    margin: 0 0 28px;
+  }
+
+  .pn-post .pn-header-divider {
+    height: 1px;
+    background: var(--pn-border);
+    margin: 0 0 40px;
+  }
+
+  .pn-post .pn-featured-wrap {
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 14px;
+    margin-bottom: 40px;
+  }
+  .pn-post .pn-featured-img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  /* Two-column layout — now a single white card wrapping BOTH the sidebar
+     and the content, so they share one surface (title + image stay above,
+     full-width, on the lavender page background). */
+  .pn-post .pn-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 44px 48px;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* NATIVE sticky sidebar. No JS. No breakout container above it,
+     so no ancestor overflow/transform can break it. */
+  /* The grid cell that reserves the sidebar's space. The inner .pn-sidebar
+     is positioned by JS (fixed/absolute) but this column keeps the layout
+     from collapsing. */
+  .pn-post .pn-sidebar-col { position: relative; }
+
+  .pn-post .pn-sidebar {
+    align-self: start;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding-right: 24px;
+    border-right: 1px solid var(--pn-border);
+  }
+
+  /* JS adds these. Using getBoundingClientRect() to drive fixed positioning
+     is immune to ancestor overflow:hidden AND ancestor transforms — the two
+     things that break native sticky/fixed in this theme. */
+  .pn-post .pn-sidebar.pn-fixed {
+    position: fixed;
+  }
+  .pn-post .pn-sidebar.pn-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+  .pn-post .pn-toc-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--pn-muted); margin: 0 0 14px;
+  }
+  .pn-post .pn-toc-list { list-style: none; margin: 0; padding: 0; }
+  .pn-post .pn-toc-list li { margin: 0 0 12px; }
+  .pn-post .pn-toc-list li:last-child { margin-bottom: 0; }
+  .pn-post .pn-toc-list a {
+    display: block;
+    color: var(--pn-muted);
+    text-decoration: none;
+    font-size: 14px; line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 14px;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .pn-post .pn-toc-list a:hover { color: var(--pn-dark); }
+  .pn-post .pn-toc-list a.pn-active {
+    color: var(--pn-dark);
+    font-weight: 600;
+    border-left-color: var(--pn-primary);
+  }
+
+  /* Content — sits on the shared white .pn-layout card now, so no own bg */
+  .pn-post .pn-content {
+    min-width: 0;
+  }
+  .pn-post h2 {
+    font-weight: 700; font-size: 27px; line-height: 1.3;
+    color: var(--pn-dark);
+    margin: 56px 0 12px; scroll-margin-top: 40px;
+  }
+  .pn-post .pn-content > h2:first-child { margin-top: 0; }
+  .pn-post h3 {
+    font-weight: 600; font-size: 21px; line-height: 1.35;
+    color: var(--pn-dark);
+    margin: 40px 0 8px; scroll-margin-top: 40px;
+  }
+  .pn-post p { margin: 0 0 18px; }
+  .pn-post ul, .pn-post ol { margin: 0 0 20px; padding-left: 22px; }
+  .pn-post li { margin-bottom: 8px; }
+  .pn-post strong { color: var(--pn-dark); font-weight: 600; }
+  .pn-post a:not(.pn-btn):not(.pn-back) {
+    color: var(--pn-primary);
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .pn-post a:not(.pn-btn):not(.pn-back):hover { color: var(--pn-dark); }
+
+  /* Callout */
+  .pn-post .pn-callout {
+    background: var(--pn-bg-soft);
+    border-left: 3px solid var(--pn-primary);
+    border-radius: 8px;
+    padding: 18px 22px; margin: 0 0 24px;
+    font-size: 16px;
+  }
+  .pn-post .pn-callout p:last-child { margin-bottom: 0; }
+
+  /* Button */
+  .pn-post .pn-btn-wrap { text-align: center; margin: 32px 0 40px; }
+  .pn-post .pn-btn-wrap.pn-align-left { text-align: left; }
+  .pn-post .pn-btn {
+    display: inline-block;
+    background: var(--pn-dark);
+    color: #fff !important;
+    font-weight: 600; font-size: 14px;
+    text-decoration: none !important;
+    padding: 13px 26px; border-radius: 30px;
+    transition: background .15s ease;
+  }
+  .pn-post .pn-btn:hover { background: var(--pn-primary); color: #fff !important; }
+
+  /* Table */
+  .pn-post .pn-table-wrap {
+    width: 100%; overflow-x: auto;
+    border-radius: 10px; border: 1px solid var(--pn-border);
+    margin: 0 0 28px;
+  }
+  .pn-post table { width: 100%; border-collapse: collapse; min-width: 480px; font-size: 14.5px; }
+  .pn-post thead th {
+    background: var(--pn-dark); color: #fff; font-weight: 600;
+    text-align: left; padding: 13px 16px; white-space: nowrap;
+  }
+  .pn-post tbody td { padding: 13px 16px; border-bottom: 1px solid var(--pn-border); background: #fff; }
+  .pn-post tbody tr:last-child td { border-bottom: none; }
+
+  /* FAQ */
+  .pn-post .pn-faq { margin-top: 8px; }
+  .pn-post .pn-faq-item { border-bottom: 1px solid var(--pn-border); }
+  .pn-post .pn-faq-item summary {
+    cursor: pointer; list-style: none;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 18px 4px;
+    font-weight: 600; font-size: 16px; color: var(--pn-dark);
+  }
+  .pn-post .pn-faq-item summary::-webkit-details-marker { display: none; }
+  .pn-post .pn-faq-item summary::after {
+    content: "+"; flex-shrink: 0; font-size: 20px; font-weight: 400;
+    color: var(--pn-primary);
+  }
+  .pn-post .pn-faq-item[open] summary::after { content: "\2212"; }
+  .pn-post .pn-faq-item .pn-faq-answer { padding: 0 4px 18px; font-size: 15.5px; color: var(--pn-text); }
+  .pn-post .pn-faq-item .pn-faq-answer p:last-child { margin-bottom: 0; }
+
+  /* Responsive: sidebar becomes a static box on top */
+  @media (max-width: 900px) {
+    .pn-post .pn-layout { grid-template-columns: 1fr; gap: 0; }
+    .pn-post .pn-sidebar,
+    .pn-post .pn-sidebar.pn-fixed,
+    .pn-post .pn-sidebar.pn-bottom {
+      position: static !important;
+      top: auto !important; left: auto !important;
+      bottom: auto !important; width: auto !important;
+      max-height: none; overflow-y: visible;
+      border-left: none; padding: 20px 22px;
+      background: var(--pn-bg-soft);
+      border: 1px solid var(--pn-border);
+      border-radius: 12px; margin-bottom: 36px;
+    }
+    .pn-post .pn-toc-list a { margin-left: 0; padding-left: 12px; }
+    .pn-post .pn-featured-wrap { height: 220px; }
+  }
+  @media (max-width: 600px) {
+    .pn-post { font-size: 16px; }
+    .pn-post .pn-title { font-size: 28px; }
+    .pn-post h2 { font-size: 22px; }
+    .pn-post h3 { font-size: 18px; }
+  }
+</style>
+
+<div class="pn-progress-bar" id="pn-progress-bar"></div>
+
+<article class="pn-post" id="pn-article">
+
+  <!-- Back link — update href to your blog listing URL if you don't want
+       browser-back behavior (currently: javascript:history.back()) -->
+  <a class="pn-back" href="{{BACK_LINK_HREF}}">
+    <span class="pn-back-icon" aria-hidden="true">
+      <svg width="8" height="13" viewBox="0 0 8 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 1L1.5 6.5L7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    All articles
+  </a>
+
+  <p class="pn-date">{{POST_DATE}}</p>
+
+  <h1 class="pn-title">{{POST_TITLE}}</h1>
+
+  <!-- Auto-calculated from word count below (~200 wpm). Edit the script's
+       fallback text if you'd rather hardcode it per post. -->
+  <p class="pn-readtime" id="pn-readtime">Reading time</p>
+
+  <div class="pn-header-divider"></div>
+
+  <div class="pn-featured-wrap">
+    <img class="pn-featured-img" src="{{FEATURED_IMG_URL}}" alt="{{FEATURED_IMG_ALT}}" />
+  </div>
+
+  <div class="pn-layout" id="pn-layout">
+
+    <div class="pn-sidebar-col" id="pn-sidebar-col">
+      <aside class="pn-sidebar" id="pn-sidebar">
+        <p class="pn-toc-title">In this article</p>
+        <ul class="pn-toc-list" id="pn-toc-list">
+          {{TOC}}
+        </ul>
+      </aside>
+    </div>
+
+    <div class="pn-content" id="pn-content">
+      {{CONTENT}}
+      {{FAQ_HTML}}
+    </div><!-- /.pn-content -->
+  </div><!-- /.pn-layout -->
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{{FAQ_SCHEMA}}]}
+</script>
+
+<!-- =================================================================
+     PAGE BACKGROUND OVERRIDE (JS fallback)
+     Walks up from the article and clears every ancestor's background,
+     then paints html + body white. This catches any lavender wrapper
+     the CSS selector list above didn't reach (e.g. an inline style or
+     a theme-specific wrapper class).
+     ================================================================= -->
+<script>
+(function () {
+  function paintWhite() {
+    document.documentElement.style.setProperty('background', '#FFFFFF', 'important');
+    document.body.style.setProperty('background', '#FFFFFF', 'important');
+
+    var el = document.getElementById('pn-article');
+    while (el && el !== document.body) {
+      // Make each wrapper transparent so the white body shows through.
+      // We skip the article itself so its own children keep their styling.
+      if (el.id !== 'pn-article') {
+        el.style.setProperty('background', 'transparent', 'important');
+      }
+      el = el.parentElement;
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', paintWhite);
+  } else {
+    paintWhite();
+  }
+  window.addEventListener('load', paintWhite);
+})();
+</script>
+
+<!-- Sticky sidebar driven by getBoundingClientRect (viewport-relative), so it
+     is immune to the theme's overflow-x:hidden AND any transformed ancestor.
+     The .pn-sidebar-col grid cell reserves the space; the inner bar goes
+     fixed while scrolling through the article, then parks at the column's
+     bottom near the end. -->
+<script>
+(function () {
+  function init() {
+    var colCell = document.getElementById('pn-sidebar-col');
+    var bar = document.getElementById('pn-sidebar');
+    var layout = document.getElementById('pn-layout');
+    if (!colCell || !bar || !layout) return;
+
+    var TOP = 40;     // gap from top of viewport when pinned
+    var BOTTOM = 24;  // gap kept at the bottom before parking
+
+    function isMobile() {
+      return window.matchMedia('(max-width: 900px)').matches;
+    }
+
+    function clear() {
+      bar.classList.remove('pn-fixed', 'pn-bottom');
+      bar.style.top = '';
+      bar.style.left = '';
+      bar.style.width = '';
+    }
+
+    function update() {
+      if (isMobile()) { clear(); return; }
+
+      var cellRect = colCell.getBoundingClientRect();
+      var rowRect = layout.getBoundingClientRect();  // the two-column row only
+      var barHeight = bar.offsetHeight;
+
+      if (rowRect.top > TOP) {
+        // Two-column section hasn't reached the pin line yet: normal flow.
+        // (This is what keeps the sidebar from riding up over the title/image.)
+        clear();
+        return;
+      }
+
+      // Would the pinned bar's bottom pass the bottom of the two-column row?
+      if (rowRect.bottom - BOTTOM < TOP + barHeight) {
+        // Park at the bottom of the column (absolute within .pn-sidebar-col).
+        bar.classList.remove('pn-fixed');
+        bar.classList.add('pn-bottom');
+        bar.style.top = '';
+        bar.style.left = '';
+        bar.style.width = cellRect.width + 'px';
+      } else {
+        // Pin to viewport, aligned to the column cell's live left/width.
+        bar.classList.add('pn-fixed');
+        bar.classList.remove('pn-bottom');
+        bar.style.top = TOP + 'px';
+        bar.style.left = cellRect.left + 'px';
+        bar.style.width = cellRect.width + 'px';
+      }
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+    setTimeout(update, 300);
+    setTimeout(update, 1200);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  window.addEventListener('load', init);
+})();
+</script>
+
+<!-- Scroll-spy: highlights the current section in the sidebar -->
+<script>
+(function () {
+  var links = document.querySelectorAll('#pn-toc-list a');
+  if (!links.length) return;
+  var headings = [];
+  links.forEach(function (link) {
+    var id = link.getAttribute('href').replace('#', '');
+    var el = document.getElementById(id);
+    if (el) headings.push({ id: id, el: el, link: link });
+  });
+  if (!headings.length) return;
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      var match = headings.find(function (h) { return h.el === entry.target; });
+      if (!match) return;
+      if (entry.isIntersecting) {
+        links.forEach(function (l) { l.classList.remove('pn-active'); });
+        match.link.classList.add('pn-active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+  headings.forEach(function (h) { observer.observe(h.el); });
+})();
+</script>
+
+<!-- Auto reading time: counts words in #pn-content and estimates at 200wpm.
+     Safe to delete this script and hand-type the <p id="pn-readtime"> text
+     instead if you'd rather set it manually per post. -->
+<script>
+(function () {
+  var el = document.getElementById('pn-readtime');
+  var content = document.getElementById('pn-content');
+  if (!el || !content) return;
+  var words = content.innerText.trim().split(/\s+/).length;
+  var minutes = Math.max(1, Math.round(words / 200));
+  el.textContent = minutes + (minutes === 1 ? ' minute read' : ' minutes read');
+})();
+</script>
+
+<!-- Reading progress bar -->
+<script>
+(function () {
+  var bar = document.getElementById('pn-progress-bar');
+  var article = document.getElementById('pn-article');
+  if (!bar || !article) return;
+  function update() {
+    var rect = article.getBoundingClientRect();
+    var total = rect.height - window.innerHeight;
+    var scrolled = -rect.top;
+    var pct = total > 0 ? (scrolled / total) * 100 : 0;
+    pct = Math.max(0, Math.min(100, pct));
+    bar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>

@@ -1,0 +1,20 @@
+# Allowlist for this shareable repository. New files remain untracked until reviewed.
+*
+!/.gitignore
+!/.env.example
+!/README.md
+!/SETUP.md
+!/CONTRIBUTING.md
+!/workflows/
+!/workflows/*.json
+!/scripts/
+!/scripts/*.py
+!/prompts/
+!/prompts/article-writer-system.txt
+!/assets/
+!/assets/blog-template.html
+!/src/
+!/src/blog_formatter.js
+!/.github/
+!/.github/workflows/
+!/.github/workflows/*.yml

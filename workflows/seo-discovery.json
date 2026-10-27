@@ -1,0 +1,790 @@
+{
+  "name": "AI Context Flow - SEO Discovery",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7ab95a07-ad79-47c6-b3b1-46090d7a8ce8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cc8b88b8-ae34-4650-8774-950213a65293",
+              "name": "seed_topic",
+              "value": "REPLACE_WITH_YOUR_SEED_TOPIC",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "414f234a-4930-45e5-bec2-4acb5f6b408b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nconst result = input.structuredContent?.results?.[0];\n\nif (!result || !Array.isArray(result.rows)) {\n  throw new Error('No keyword rows found in OpenSEO response');\n}\n\nconst seedTopic = result.seed || '';\n\nreturn result.rows.map(row => ({\n  json: {\n    seed_topic: seedTopic,\n    keyword: row.keyword,\n    search_volume: row.searchVolume ?? null,\n    keyword_difficulty: row.keywordDifficulty ?? null,\n    cpc: row.cpc ?? null,\n    competition: row.competition ?? null,\n    intent: row.intent ?? null\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        830,
+        0
+      ],
+      "id": "77f562c4-0c2b-4948-b542-42baae8f2d37",
+      "name": "Normalize OpenSEO Keywords"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://app.openseo.so/mcp",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "value": "research_keywords",
+          "mode": "list",
+          "cachedResultName": "research_keywords"
+        },
+        "inputMode": "json",
+        "jsonInput": "={{\n  {\n    \"projectId\": \"REPLACE_WITH_YOUR_OPENSEO_PROJECT_ID\",\n    \"seeds\": [\n      {\n        \"seed\": $json.seed_topic\n      }\n    ]\n  }\n}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        0
+      ],
+      "id": "1099304c-4104-4441-b774-04d2fd8ef72c",
+      "name": "MCP Client- openseo"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "keywords",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        -220
+      ],
+      "id": "36d016e6-13f5-4ae0-80bc-0d771a086319",
+      "name": "Aggregate Keywords"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst keywords = data.keywords || [];\nconst seedTopic = keywords[0]?.seed_topic || \"\";\n\nconst keywordData = keywords.map(k => ({\n  keyword: k.keyword,\n  search_volume: k.search_volume,\n  keyword_difficulty: k.keyword_difficulty,\n  cpc: k.cpc,\n  competition: k.competition,\n  provider_intent: k.intent\n}));\n\nconst systemPrompt = `\nYou are an SEO content strategist for an AI SaaS product.\n\nYour task is NOT simply to rank keywords.\n\nYour task is to turn keyword research into useful ARTICLE OPPORTUNITIES.\nCONTENT OBJECTIVE\n\nFor every article opportunity, classify its content objective as exactly one of:\n\nauthority\n- Primary purpose: attract relevant search demand, educate the audience,\n  and build AI Context Flow's authority in AI memory, context management,\n  context portability, and adjacent topics.\n- The article does not need to lead directly to product adoption.\n- Do not force AI Context Flow into the article if the connection is weak.\n\nproduct_education\n- Primary purpose: educate a potential buyer about a problem, workflow,\n  or decision where AI Context Flow can provide meaningful value.\n- The reader should naturally understand why the problem matters,\n  why existing/manual approaches may be insufficient, and where\n  AI Context Flow fits.\n- Product relevance must be genuine. Do not classify an article as\n  product_education merely because the product could be mentioned.\n\nSearch intent and content objective are separate dimensions.\nFor example, an informational or how-to query can be either authority\nor product_education depending on its relationship to the product problem.\n\nPRODUCT CONTEXT:\nProduct: AI Context Flow\nCategory: Open Context Layer / portable AI context\n\nPrimary audience:\nAI power users and knowledge workers\n\nCore segments:\nfreelancers, knowledge workers, project managers, and other heavy AI users\n\nSecondary audience:\nfounders and small AI-native teams\n\nNot primary audience:\ndevelopers building AI infrastructure or ML engineers\n\nCore behavior:\nUsers work repeatedly across multiple AI tools, projects, and conversations.\n\nCore problem:\nUseful context is fragmented across AI tools, conversations, and workflows,\nforcing users to repeatedly explain themselves or manually transfer context.\n\nCore value:\nKeep useful context available and portable across AI tools and workflows.\n\nCONTENT TERRITORY:\n- AI context management\n- AI memory and persistent context\n- context portability\n- cross-tool AI workflows\n- context engineering for end users\n- long-term AI context\n- shared/team AI context\n- related emerging concepts addressing the same user problems\n\n\nYOUR PROCESS:\n\n1. SEMANTIC FILTERING\n\nFirst determine what each keyword actually means.\n\nDo not assume a keyword is relevant simply because it contains words\nfrom the seed topic.\n\nExclude keywords whose real search meaning falls outside the product's\nproblem space.\n\nHigh search volume does NOT automatically mean high content value.\n\n\n2. SEARCH DEMAND CLUSTERING\n\nGroup keywords that represent the same or closely related search need.\n\nA cluster should represent a potential search topic, not simply a shared word.\n\nDo not create separate articles for minor keyword variations when one\nstrong article could satisfy the same search intent.\n\n\n3. ARTICLE OPPORTUNITY CREATION\n\nTurn useful keyword clusters into potential articles.\n\nEach article opportunity should have ONE clear primary search target\nand several supporting search terms where appropriate.\n\nDo NOT force every keyword into an article.\n\n\n4. PRIMARY KEYWORD\n\nChoose one primary keyword for each article.\n\nConsider:\n- semantic match with the article\n- search volume\n- keyword difficulty\n- search intent\n- product relevance\n- audience relevance\n\nDo NOT simply choose the keyword with the highest volume.\n\n\n5. SECONDARY KEYWORDS\n\nChoose related keywords that help define the semantic coverage of the article.\n\nSecondary keywords are NOT words that should be mechanically repeated.\n\nThey represent:\n- related concepts\n- alternative search language\n- important subtopics\n- adjacent user needs\n\nThey should help the future writer understand what the article needs to cover.\n\n\n6. QUESTIONS / SUBTOPICS\n\nInfer important questions or subtopics from the keyword set.\n\nThese should help a future content strategist and writer understand\nwhat users actually want to learn.\n\nDo not invent unrelated questions merely to make the article longer.\n\n\n7. SEARCH INTENT\n\nClassify the article's primary search intent using ONLY:\n\n- informational\n- how-to\n- comparison\n- commercial investigation\n- transactional\n- navigational\n\nChoose exactly ONE primary intent.\n\nSecondary intent may be included only when clearly supported.\n\n\n8. SEO METRICS\n\nNever invent or modify SEO metrics.\n\nPrimary keyword metrics must exactly match the provided OpenSEO data.\n\nDo not estimate missing metrics.\n\n\n9. PRODUCT RELEVANCE\n\nClassify article opportunity relevance as:\n\nhigh\nmedium\nlow\n\nHigh means the search topic strongly overlaps with the product's core\nproblem, audience, or positioning.\n\nLow-relevance opportunities should generally not be recommended.\n\n\n10. IMPORTANT\n\nThe objective is NOT keyword stuffing.\n\nThe objective is to understand search demand and use it to determine:\n- what article to create\n- what its primary SEO target should be\n- what related concepts/search terms it should cover\n- what questions the article should answer\n\nReturn valid JSON only.\n`;\n\nconst userPrompt = `\nSEED TOPIC:\n${seedTopic}\n\nBelow are keywords discovered by OpenSEO for this seed topic.\n\nAnalyze the complete keyword set and turn it into article-level SEO opportunities.\n\nKEYWORDS:\n${JSON.stringify(keywordData)}\n\nReturn this exact structure:\n\n{\n  \"seed_topic\": \"${seedTopic}\",\n\n  \"search_landscape_summary\": \"\",\n\n  \"excluded_patterns\": [\n    {\n      \"pattern\": \"\",\n      \"reason\": \"\"\n    }\n  ],\n\n  \"keyword_clusters\": [\n    {\n      \"cluster_name\": \"\",\n      \"search_need\": \"\",\n      \"keywords\": []\n    }\n  ],\n\n  \"article_opportunities\": [\n    {\n      \"topic\": \"\",\n\n      \"primary_keyword\": {\n        \"keyword\": \"\",\n        \"search_volume\": null,\n        \"keyword_difficulty\": null,\n        \"cpc\": null,\n        \"competition\": null\n      },\n\n      \"secondary_keywords\": [\n        \"\"\n      ],\n\n      \"search_intent\": {\n        \"primary\": \"\",\n        \"secondary\": []\n      },\n      \"content_objective\": \"authority | product_education\",\n      \"questions_to_cover\": [\n        \"\"\n      ],\n\n      \"product_relevance\": \"high | medium | low\",\n\n      \"audience_fit\": \"\",\n\n      \"seo_rationale\": \"\",\n\n      \"article_angle\": \"\"\n    }\n  ]\n}\n`;\n\nreturn [{\n  json: {\n    seed_topic: seedTopic,\n    keyword_count: keywords.length,\n    system_prompt: systemPrompt,\n    user_prompt: userPrompt\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -220
+      ],
+      "id": "800b77b9-cd0b-4803-916c-08d2c2b16670",
+      "name": "prepare keywords analysis"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"openai/gpt-5-mini\",\n    \"messages\": [\n      {\n        \"role\": \"system\",\n        \"content\": $json.system_prompt\n      },\n      {\n        \"role\": \"user\",\n        \"content\": $json.user_prompt\n      }\n    ],\n    \"response_format\": {\n      \"type\": \"json_object\"\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1600,
+        -220
+      ],
+      "id": "0da01bee-e739-4e52-833c-1ba359b2be78",
+      "name": "OpenRouter - Keyword Analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.choices?.[0]?.message?.content;\n\nif (!raw) {\n  throw new Error('No AI analysis found');\n}\n\nlet cleaned = raw.trim();\n\n// Remove markdown fences if the model ever adds them\ncleaned = cleaned\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/```$/i, '')\n  .trim();\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(`Could not parse AI analysis JSON: ${error.message}`);\n}\n\nreturn [{\n  json: parsed\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        -220
+      ],
+      "id": "1bbad6f2-2c57-4fd9-ba8b-96a10656c7d7",
+      "name": "Parse Keyword Analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst opportunities = data.article_opportunities || [];\n\nif (opportunities.length === 0) {\n  throw new Error('No article opportunities found');\n}\n\nreturn opportunities.map(article => ({\n  json: {\n    seed_topic: data.seed_topic,\n\n    topic: article.topic,\n\n    primary_keyword: article.primary_keyword?.keyword || \"\",\n    search_volume: article.primary_keyword?.search_volume ?? null,\n    keyword_difficulty: article.primary_keyword?.keyword_difficulty ?? null,\n    cpc: article.primary_keyword?.cpc ?? null,\n    competition: article.primary_keyword?.competition ?? null,\n\n    secondary_keywords: article.secondary_keywords || [],\n\n    search_intent: article.search_intent?.primary || \"\",\n    secondary_intent: article.search_intent?.secondary || [],\n\n    content_objective: article.content_objective || \"\",\n    questions_to_cover: article.questions_to_cover || [],\n\n    product_relevance: article.product_relevance || \"\",\n    audience_fit: article.audience_fit || \"\",\n    seo_rationale: article.seo_rationale || \"\",\n    article_angle: article.article_angle || \"\"\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -220
+      ],
+      "id": "788dddf4-6fee-486d-9b46-238eb6344e50",
+      "name": "Split Article Opportunities"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Remove exact duplicates, while keeping all potentially\n// interesting keywords — even if they aren't article opportunities.\nconst seen = new Set();\n\nconst cleaned = items\n  .map(item => item.json)\n  .filter(row => {\n    const keyword = (row.keyword || '').trim().toLowerCase();\n\n    if (!keyword || seen.has(keyword)) {\n      return false;\n    }\n\n    seen.add(keyword);\n    return true;\n  })\n  .map(row => {\n  const observedDate = new Date().toISOString().split('T')[0];\n\n  return {\n    seed_topic: row.seed_topic,\n    keyword: row.keyword,\n    search_volume: row.search_volume ?? null,\n    keyword_difficulty: row.keyword_difficulty ?? null,\n    intent: row.intent ?? null,\n    cpc: row.cpc ?? null,\n    competition: row.competition ?? null,\n    observed_date: observedDate,\n    observation_key: `${row.seed_topic}|${row.keyword}|${observedDate}`\n  };\n});\n\n// Highest search volume first.\n// Keywords without volume go to the bottom.\ncleaned.sort((a, b) => {\n  const volumeA = a.search_volume ?? -1;\n  const volumeB = b.search_volume ?? -1;\n\n  return volumeB - volumeA;\n});\n\nreturn cleaned.map(row => ({\n  json: row\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        450
+      ],
+      "id": "80b71e0c-b47d-426d-9d75-73f7dd510482",
+      "name": "Prepare Search Demand Watchlist"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Observation Key": "={{ $json.observation_key }}",
+            "Seed Topic ": "={{ $json.seed_topic }}",
+            "Keyword ": "={{ $json.keyword }}",
+            "Search Volume": "={{ $json.search_volume }}",
+            " KD": "={{ $json.keyword_difficulty }}",
+            "Intent ": "={{ $json.intent }}",
+            "CPC ": "={{ $json.cpc }}",
+            "Competition": "={{ $json.competition }}",
+            "Observed Date": "={{ $json.observed_date }}"
+          },
+          "matchingColumns": [
+            "Observation Key"
+          ],
+          "schema": [
+            {
+              "id": "Seed Topic ",
+              "displayName": "Seed Topic ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Keyword ",
+              "displayName": "Keyword ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Search Volume",
+              "displayName": "Search Volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " KD",
+              "displayName": " KD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent ",
+              "displayName": "Intent ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CPC ",
+              "displayName": "CPC ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Competition",
+              "displayName": "Competition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Observed Date",
+              "displayName": "Observed Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Observation Key",
+              "displayName": "Observation Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1130,
+        1040
+      ],
+      "id": "c51014f5-bc77-4048-ad77-a2c2e699cb94",
+      "name": "Append or update row in sheet"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic": "={{ $json.topic }}",
+            "Primary Keyword": "={{ $json.primary_keyword }}",
+            "Search Volume": "={{ $json.search_volume }}",
+            "KD": "={{ $json.keyword_difficulty }}",
+            "Intent": "={{ $json.search_intent }}",
+            "Product relevance": "={{ $json.product_relevance }}",
+            "POV": "=",
+            "Angle": "={{ $json.article_angle }}",
+            "Status": "idea",
+            "Content objective": "={{ $json.content_objective }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Primary Keyword",
+              "displayName": "Primary Keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Search Volume",
+              "displayName": "Search Volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "KD",
+              "displayName": "KD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Content objective",
+              "displayName": "Content objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product relevance",
+              "displayName": "Product relevance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strategic Pillar",
+              "displayName": "Strategic Pillar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Angle",
+              "displayName": "Angle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "POV",
+              "displayName": "POV",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Generate",
+              "displayName": "Generate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Draft URL",
+              "displayName": "Draft URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Publish URL",
+              "displayName": "Publish URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2330,
+        -220
+      ],
+      "id": "304b42bf-5053-49bc-976b-def81cb03189",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://app.plurality.network/mcp",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "value": "save_memory",
+          "mode": "list",
+          "cachedResultName": "save_memory"
+        },
+        "inputMode": "json",
+        "jsonInput": "={{ $json.plurality_social_ideas }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        1610,
+        450
+      ],
+      "id": "64c3d17c-9ca3-4d9d-bccf-5590443e2742",
+      "name": "Save ACF Social Ideas to Memory"
+    },
+    {
+      "id": "d03db938-9618-4835-a9d9-130d21ae84d3",
+      "name": "Package Social Idea Watchlist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1370,
+        450
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.keyword);\nif (rows.length === 0) throw new Error('No search-demand keywords to save');\nconst seed = rows[0].seed_topic || 'SEO discovery';\nconst observed = rows[0].observed_date || new Date().toISOString().slice(0, 10);\nconst top = rows.slice(0, 30);\nconst lines = top.map((row, index) => {\n  const volume = row.search_volume ?? 'unknown';\n  const difficulty = row.keyword_difficulty ?? 'unknown';\n  const intent = row.intent || 'unclassified';\n  const phrase = String(row.keyword).trim();\n  const format = /how to|guide|tutorial/i.test(phrase) ? 'short how-to or checklist'\n    : /vs|versus|compare|alternative/i.test(phrase) ? 'comparison carousel'\n    : /what is|meaning|definition/i.test(phrase) ? 'plain-language explainer'\n    : 'question-led explainer';\n  return `${index + 1}. ${phrase}\\n   Social idea starter: ${format} on this search question.\\n   Search volume: ${volume}; difficulty: ${difficulty}; intent: ${intent}.`;\n});\nconst content = [\n  `# ACF social media idea prompts: ${seed}`,\n  `Observed: ${observed}. Source: OpenSEO keyword research. ${rows.length} distinct keyword(s); top ${top.length} by search volume shown.`,\n  'These are prompts for editorial review, not verified facts or ready-to-publish posts. Check the keyword meaning, evidence, brand fit, and AI Context Flow relevance before using any idea.',\n  ...lines,\n].join('\\n\\n');\nreturn [{ json: { plurality_social_ideas: {\n  profile_id: 'REPLACE_WITH_YOUR_SOCIAL_IDEAS_BUCKET_ID',\n  title: `ACF social ideas | ${seed} | ${observed}`,\n  content,\n  source_platform: 'n8n',\n}, idea_count: top.length, total_keywords: rows.length } }];"
+      }
+    },
+    {
+      "id": "d15efe7b-e841-421d-85a8-2eb0a7988639",
+      "name": "00 • START WITH A SEED TOPIC",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -220
+      ],
+      "parameters": {
+        "content": "## 00 · Choose a seed topic\nRun manually. In **Edit Fields**, replace `seed_topic` (set this to your own topic) with the topic to explore. One execution researches that seed and creates article opportunities plus a separate social idea watchlist.",
+        "width": 560,
+        "height": 430,
+        "color": 1
+      }
+    },
+    {
+      "id": "2d20b6d9-9e1e-4fdb-a9c4-2b8b719c55c0",
+      "name": "01 • OPENSEO KEYWORD RESEARCH",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        530,
+        -220
+      ],
+      "parameters": {
+        "content": "## 01 · Collect search demand\n**MCP Client- openseo** calls `research_keywords` for the seed. **Normalize OpenSEO Keywords** turns the response into one row per keyword with volume, difficulty, CPC, competition, and intent. The rows split into article and social inspiration lanes.",
+        "width": 560,
+        "height": 430,
+        "color": 4
+      }
+    },
+    {
+      "id": "3337fd59-d50a-4143-9cc7-7b9caaa13956",
+      "name": "02 • ARTICLE OPPORTUNITY ANALYSIS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -460
+      ],
+      "parameters": {
+        "content": "## 02 · Find article opportunities\n**Aggregate Keywords** collects the rows. **prepare keywords analysis** asks the model to filter irrelevant terms, cluster intent, and propose article opportunities. **OpenRouter - Keyword Analysis** runs the model; the next two nodes parse and split its structured output.",
+        "width": 1160,
+        "height": 430,
+        "color": 5
+      }
+    },
+    {
+      "id": "34f1cc6a-e764-4387-b4e8-da01355219cb",
+      "name": "03 • SAVE ARTICLE IDEAS TO SHEETS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2280,
+        -460
+      ],
+      "parameters": {
+        "content": "## 03 · Content Engine output\n**Append row in sheet** writes each article opportunity to the Content Engine tab with status `idea`. This is the input used later by content strategy. Review the rows before advancing them.",
+        "width": 480,
+        "height": 430,
+        "color": 3
+      }
+    },
+    {
+      "id": "75366759-52fb-43b7-86b7-16a5d230a7e9",
+      "name": "04 • SOCIAL IDEA WATCHLIST",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "content": "## 04 · Preserve social inspiration\n**Prepare Search Demand Watchlist** removes exact duplicates and sorts by search volume. **Package Social Idea Watchlist** makes one dated memory with up to 30 keyword-based social prompts. **Save ACF Social Ideas to Memory** writes it to the `ideas for ACF social media` bucket. These prompts need editorial validation before posting.",
+        "width": 850,
+        "height": 470,
+        "color": 6
+      }
+    },
+    {
+      "id": "1dd69892-3eb6-4b2a-ad93-57fa36873a9d",
+      "name": "OPEN SEO • TEAMMATE SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        530,
+        260
+      ],
+      "parameters": {
+        "content": "### External setup · OpenSEO\n1. Connect an OpenSEO bearer credential to **MCP Client- openseo**.\n2. Replace the `projectId` placeholder with a project your account can access.\n3. Keep endpoint `https://app.openseo.so/mcp` and tool `research_keywords`; verify one test run returns keyword rows.",
+        "width": 560,
+        "height": 320,
+        "color": 7
+      }
+    },
+    {
+      "id": "f8fe5b16-a8ab-463d-9f1e-5294b7fbc374",
+      "name": "OPENROUTER • TEAMMATE SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        -850
+      ],
+      "parameters": {
+        "content": "### External setup · OpenRouter\nCreate/select an n8n Header Auth credential for your own OpenRouter API key on **OpenRouter - Keyword Analysis**. Check the model and available credits. The request uses `https://openrouter.ai/api/v1/chat/completions` and currently selects `openai/gpt-5-mini`.",
+        "width": 620,
+        "height": 320,
+        "color": 7
+      }
+    },
+    {
+      "id": "d920eca4-ea79-40ff-9fc9-d4ade23de15f",
+      "name": "GOOGLE SHEETS • TEAMMATE SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        -460
+      ],
+      "parameters": {
+        "content": "### External setup · Google Sheets\nConnect your Google Sheets OAuth credential to **Append row in sheet**. Replace the spreadsheet ID and Content Engine tab with your own destination, then refresh column mappings. The export leaves document and tab selectors blank; reauthorize your own account.",
+        "width": 540,
+        "height": 360,
+        "color": 7
+      }
+    },
+    {
+      "id": "1304dcf6-ab8e-4a70-93db-be1ef1e40c85",
+      "name": "ACF MEMORY • TEAMMATE SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        200
+      ],
+      "parameters": {
+        "content": "### External setup · AI Context Flow\nConnect a bearer credential for your own AI Context Flow PAT to **Save ACF Social Ideas to Memory**. Endpoint: `https://app.plurality.network/mcp`; tool: `save_memory`. Create or select a bucket named `ideas for ACF social media` in your account, then replace `profile_id` in **Package Social Idea Watchlist** with *your* bucket ID. The export contains a bucket-ID placeholder. Each execution saves a new dated memory.",
+        "width": 680,
+        "height": 470,
+        "color": 7
+      }
+    },
+    {
+      "id": "bfdd2467-a7a5-4e24-ac94-38e3340a5364",
+      "name": "OPTIONAL • DISCONNECTED SHEET WATCHLIST",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        800
+      ],
+      "parameters": {
+        "content": "## Optional · Search Demand Watchlist sheet\n**Append or update row in sheet** is currently **disconnected**, so it does not run. It is a legacy/optional Google Sheets output for raw keyword observations. To use it, connect it after **Prepare Search Demand Watchlist**, authorize Google Sheets, and replace its spreadsheet/tab IDs and mappings. Leaving it disconnected keeps the social memory branch as the active watchlist output.",
+        "width": 520,
+        "height": 430,
+        "color": 2
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "MCP Client- openseo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client- openseo": {
+      "main": [
+        [
+          {
+            "node": "Normalize OpenSEO Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize OpenSEO Keywords": {
+      "main": [
+        [
+          {
+            "node": "Prepare Search Demand Watchlist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Keywords": {
+      "main": [
+        [
+          {
+            "node": "prepare keywords analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare keywords analysis": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter - Keyword Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter - Keyword Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse Keyword Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Keyword Analysis": {
+      "main": [
+        [
+          {
+            "node": "Split Article Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Search Demand Watchlist": {
+      "main": [
+        [
+          {
+            "node": "Package Social Idea Watchlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Article Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package Social Idea Watchlist": {
+      "main": [
+        [
+          {
+            "node": "Save ACF Social Ideas to Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
