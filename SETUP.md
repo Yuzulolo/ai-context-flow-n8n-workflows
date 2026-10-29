@@ -20,6 +20,15 @@ Create or connect your own accounts for the services used below. Enter tokens in
 
 Do not paste a PAT into a Code node. The placeholder bucket IDs in Code nodes are **bucket identifiers**, not credentials.
 
+### Reconnect credentials after importing the workflows
+
+The exported JSON contains **no selected credentials**. A credential's display name (for example, `Header Auth account`) is only a label in your own n8n; it does not need to match anyone else's name. Create credentials in **Credentials** or from a node's credential dropdown, then select your new credential in **every node** that uses that service. If you cannot edit an existing credential, create one you own and select it instead.
+
+- **OpenRouter:** In each HTTP Request node whose URL is `https://openrouter.ai/api/v1/chat/completions`, keep **Authentication → Generic Credential Type** and **Generic Auth Type → Header Auth**. Create a Header Auth credential. Set its header **Name** to exactly `Authorization` and **Value** to `Bearer <your own OpenRouter API key>` (including the space). Give the credential any useful display name, such as `OpenRouter - my account`. Save it, select it in every OpenRouter request, and test one node. Some of these requests have generic node names. OpenRouter here is an HTTP API, not an MCP server. The **Send Headers** toggle is for other request headers and does not replace the authentication credential.
+- **AI Context Flow:** For `Save ACF Social Ideas to Memory` in SEO Discovery and `Save Article to AI Context Flow` in Content Production, keep the MCP Client endpoint `https://app.plurality.network/mcp` and **Authentication → Bearer Auth**. Create a Bearer Auth credential and enter **your own AI Context Flow PAT as the raw token**, without typing `Bearer ` in the token field. Select it in each MCP Client node. Content Strategy V1's `List ACF Blogs Ideas` and `Read Current Week Memory` are HTTP Request nodes; select that same Bearer Auth credential in both. The PAT belongs in the credential, not a bucket-ID field.
+
+If an OpenRouter node says **Authorization failed**, first check that the node selects your credential and that its saved header name/value are correct. A screenshot of the node alone cannot establish whether the key is missing, invalid, or tied to an account without available model credit. Open **Error details → From HTTP Request** for the actual response before changing other settings. Test a single node before running a full workflow, since model calls can cost money.
+
 ## 2. Set up the destinations
 
 Create a spreadsheet with tabs and columns matching the selected n8n node mappings, or select your team's existing spreadsheet and refresh every mapping after import. The workflow notes identify the nodes that use each tab:
