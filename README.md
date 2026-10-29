@@ -12,9 +12,13 @@ The workflows are inactive on import. **No workflow here publishes to WordPress.
 
 ## Get started
 
-1. Import the three JSON files from `workflows/` into your own n8n instance.
-2. Follow [SETUP.md](SETUP.md) to configure each external service and replace every `REPLACE_WITH_...` value. The colored notes on each canvas point to the exact nodes.
+**Using n8n on your own laptop?** Google Sheets asks for a Client ID and Client Secret before you can sign in with Gmail. This is expected for self-hosted n8n: create an OAuth app in Google Cloud, enter its ID and secret in n8n, then click **Sign in with Google**. n8n Cloud offers one-click Google sign-in for these nodes. See the [step-by-step Google setup](SETUP.md#2-connect-google-sheets-on-self-hosted-n8n).
+
+1. Import the three JSON files from `workflows/` into your own n8n instance and leave them inactive.
+2. Follow the [full laptop setup guide](SETUP.md): connect Google Sheets, OpenSEO, OpenRouter, AI Context Flow, Firecrawl, Apify, and the local Claude writer; create the destination sheets and memory buckets; replace every `REPLACE_WITH_...` value. The colored canvas notes point to the relevant nodes.
 3. Run one small test through SEO Discovery, then Content Strategy V1, then Content Production after approving a strategy row.
+
+The exports intentionally contain **no credentials**. A credential's display name can be anything; its type and fields must match the service. Each teammate uses their own service accounts, API keys, Google Cloud OAuth client, spreadsheet, and memory buckets. Never commit a token, Client Secret, or `.env` file.
 
 The [Claude bridge](scripts/claude_writer_bridge.py), [launcher](scripts/run_claude_writer_bridge.py), and [writer prompt](prompts/article-writer-system.txt) are included for Content Production. Keep your real `.env` file and all API keys on your own laptop; `.env.example` contains names only.
 
